@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,24 @@ interface SongData {
   artist: string;
   thumbnail: string;
   duration: string;
+}
+
+interface YouTubeVideoResponse {
+  items: Array<{
+    snippet: {
+      title: string;
+      channelTitle: string;
+      thumbnails: {
+        maxres?: { url: string };
+        high?: { url: string };
+        medium?: { url: string };
+        default: { url: string };
+      };
+    };
+    contentDetails: {
+      duration: string;
+    };
+  }>;
 }
 
 const Submit = () => {
@@ -81,6 +98,75 @@ const Submit = () => {
     return null;
   };
 
+  const formatDuration = (duration: string): string => {
+    // Convert ISO 8601 duration (PT4M13S) to readable format (4:13)
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return "Unknown";
+    
+    const hours = parseInt(match[1] || "0");
+    const minutes = parseInt(match[2] || "0");
+    const seconds = parseInt(match[3] || "0");
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const fetchYouTubeVideoData = async (videoId: string): Promise<SongData> => {
+    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+    
+    if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
+      throw new Error('YouTube API key not configured. Please add your API key to the .env file.');
+    }
+
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=snippet,contentDetails`;
+    
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error('YouTube API quota exceeded or invalid API key. Please check your API key and quota.');
+      }
+      throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data: YouTubeVideoResponse = await response.json();
+    
+    if (!data.items || data.items.length === 0) {
+      throw new Error('Video not found or is private/unavailable.');
+    }
+    
+    const video = data.items[0];
+    const snippet = video.snippet;
+    const contentDetails = video.contentDetails;
+    
+    // Get the best available thumbnail
+    const thumbnail = snippet.thumbnails.maxres?.url || 
+                     snippet.thumbnails.high?.url || 
+                     snippet.thumbnails.medium?.url || 
+                     snippet.thumbnails.default.url;
+    
+    // Extract artist from channel title or video title
+    // This is a simple heuristic - you might want to improve this logic
+    let artist = snippet.channelTitle;
+    let title = snippet.title;
+    
+    // Try to extract artist from title if it contains " - "
+    const titleParts = title.split(' - ');
+    if (titleParts.length >= 2) {
+      artist = titleParts[0].trim();
+      title = titleParts.slice(1).join(' - ').trim();
+    }
+    
+    return {
+      title: title,
+      artist: artist,
+      thumbnail: thumbnail,
+      duration: formatDuration(contentDetails.duration)
+    };
+  };
+
   const handleUrlSubmit = async () => {
     if (!youtubeUrl.includes("youtube.com") && !youtubeUrl.includes("youtu.be")) {
       toast({
@@ -104,29 +190,22 @@ const Submit = () => {
     setIsLoading(true);
     
     try {
-      // For now, we'll simulate fetching data
-      // TODO: Implement YouTube API integration
-      setTimeout(() => {
-        setSongData({
-          title: "Sample Song Title",
-          artist: "Sample Artist",
-          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          duration: "3:45"
-        });
-        setIsLoading(false);
-        
-        toast({
-          title: "Success",
-          description: "Song information retrieved successfully!"
-        });
-      }, 2000);
-    } catch (error) {
-      setIsLoading(false);
+      const songData = await fetchYouTubeVideoData(videoId);
+      setSongData(songData);
+      
+      toast({
+        title: "Success",
+        description: "Song information retrieved successfully!"
+      });
+    } catch (error: any) {
+      console.error('Error fetching YouTube data:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch song information",
+        description: error.message || "Failed to fetch song information",
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -365,6 +444,21 @@ const Submit = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* API Key Notice */}
+              {(!import.meta.env.VITE_YOUTUBE_API_KEY || import.meta.env.VITE_YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') && (
+                <Card className="bg-red-500/10 border-red-500/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-2">
+                      <AlertCircle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-red-200 text-sm">
+                        <p className="font-semibold mb-2">YouTube API Key Required:</p>
+                        <p>To fetch video details, you need to add your YouTube API key to the .env file. Replace 'YOUR_YOUTUBE_API_KEY_HERE' with your actual API key.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </div>
