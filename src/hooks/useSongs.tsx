@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,10 +21,10 @@ export interface Song {
   review_count: number;
 }
 
-// Define allowed genre values to match database enum
+// Define allowed genre values to match database enum - updated for new Indian genres
 type SongGenre = 'rock' | 'pop' | 'hip_hop' | 'electronic' | 'jazz' | 'classical' | 'country' | 'r_b' | 'indie' | 'alternative' | 'grunge' | 'metal' | 'folk' | 'blues' | 'reggae' | 'punk' | 'funk' | 'soul' | 'disco' | 'house' | 'techno' | 'dubstep' | 'ambient' | 'experimental' | 'bollywood' | 'other';
 
-// Map display genres to database enum values
+// Map display genres to database enum values - updated for new genres
 const genreMapping: { [key: string]: SongGenre } = {
   'All': 'other', // This won't be used in filtering
   'Rock': 'rock',
@@ -37,7 +36,9 @@ const genreMapping: { [key: string]: SongGenre } = {
   'Grunge': 'grunge',
   'Alternative': 'alternative',
   'Indie': 'indie',
-  'Bollywood': 'bollywood'
+  'Bollywood': 'bollywood',
+  'Folk': 'folk',
+  'Experimental': 'experimental'
 };
 
 export const useSongs = (searchTerm = '', selectedGenre = 'All') => {

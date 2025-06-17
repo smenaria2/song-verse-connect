@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
+import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -163,7 +162,10 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-400 border-t-transparent"></div>
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 text-purple-400 mx-auto animate-spin" />
+          <p className="text-white/70 mt-4">Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -171,7 +173,12 @@ const Profile = () => {
   if (!profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <p className="text-white">Profile not found</p>
+        <div className="text-center">
+          <div className="animate-bounce mb-4">
+            <UserCircle className="h-16 w-16 text-white/40 mx-auto" />
+          </div>
+          <p className="text-white">Profile not found</p>
+        </div>
       </div>
     );
   }
@@ -187,9 +194,18 @@ const Profile = () => {
               <h1 className="text-2xl font-bold text-white">SongScope</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="text-white hover:text-purple-400 transition-colors">Browse</Link>
-              <Link to="/submit" className="text-white hover:text-purple-400 transition-colors">Submit Song</Link>
-              <Link to="/profile" className="text-purple-400">Profile</Link>
+              <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                <Home className="h-4 w-4" />
+                <span>Browse</span>
+              </Link>
+              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                <Upload className="h-4 w-4" />
+                <span>Submit Song</span>
+              </Link>
+              <Link to="/profile" className="flex items-center space-x-2 text-purple-400">
+                <UserCircle className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </nav>
           </div>
         </div>
@@ -197,11 +213,11 @@ const Profile = () => {
 
       <div className="container mx-auto px-4 py-12">
         {/* Profile Header */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8">
+        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
               <div className="relative">
-                <Avatar className="w-32 h-32">
+                <Avatar className="w-32 h-32 animate-pulse">
                   <AvatarImage src={profile.avatar_url || ""} alt={profile.username} />
                   <AvatarFallback className="text-2xl">{profile.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -253,23 +269,23 @@ const Profile = () => {
             {/* Stats */}
             {stats && (
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-8 border-t border-white/20">
-                <div className="text-center">
+                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
                   <div className="text-2xl font-bold text-white">{stats.songs_submitted}</div>
                   <div className="text-white/70 text-sm">Songs Submitted</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
                   <div className="text-2xl font-bold text-white">{stats.reviews_written}</div>
                   <div className="text-white/70 text-sm">Reviews Written</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '300ms' }}>
                   <div className="text-2xl font-bold text-white">{stats.average_rating_given.toFixed(1)}</div>
                   <div className="text-white/70 text-sm">Avg Rating Given</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '400ms' }}>
                   <div className="text-2xl font-bold text-white">{stats.followers_count}</div>
                   <div className="text-white/70 text-sm">Followers</div>
                 </div>
-                <div className="text-center">
+                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '500ms' }}>
                   <div className="text-2xl font-bold text-white">{stats.following_count}</div>
                   <div className="text-white/70 text-sm">Following</div>
                 </div>
@@ -294,8 +310,12 @@ const Profile = () => {
 
           <TabsContent value="submitted" className="space-y-4">
             <div className="grid gap-4">
-              {submittedSongs.length > 0 ? submittedSongs.map((song) => (
-                <Card key={song.id} className="bg-white/10 border-white/20 backdrop-blur-md">
+              {submittedSongs.length > 0 ? submittedSongs.map((song, index) => (
+                <Card 
+                  key={song.id} 
+                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-left-4"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-2">
@@ -320,6 +340,9 @@ const Profile = () => {
                 </Card>
               )) : (
                 <div className="text-center py-8 text-white/70">
+                  <div className="animate-bounce mb-4">
+                    <Music className="h-12 w-12 text-white/40 mx-auto" />
+                  </div>
                   <p>No songs submitted yet.</p>
                 </div>
               )}
@@ -328,8 +351,12 @@ const Profile = () => {
 
           <TabsContent value="reviews" className="space-y-4">
             <div className="grid gap-4">
-              {userReviews.length > 0 ? userReviews.map((review) => (
-                <Card key={review.id} className="bg-white/10 border-white/20 backdrop-blur-md">
+              {userReviews.length > 0 ? userReviews.map((review, index) => (
+                <Card 
+                  key={review.id} 
+                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-right-4"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                   <CardContent className="p-6">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -361,6 +388,9 @@ const Profile = () => {
                 </Card>
               )) : (
                 <div className="text-center py-8 text-white/70">
+                  <div className="animate-bounce mb-4">
+                    <Star className="h-12 w-12 text-white/40 mx-auto" />
+                  </div>
                   <p>No reviews written yet.</p>
                 </div>
               )}
@@ -369,6 +399,9 @@ const Profile = () => {
 
           <TabsContent value="following" className="space-y-4">
             <div className="text-center py-8">
+              <div className="animate-pulse mb-4">
+                <UserCircle className="h-12 w-12 text-white/40 mx-auto" />
+              </div>
               <p className="text-white/70">Following feature coming soon...</p>
             </div>
           </TabsContent>

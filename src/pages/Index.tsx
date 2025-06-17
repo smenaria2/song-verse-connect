@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Music, Star, Play, Clock, User } from "lucide-react";
+import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs } from "@/hooks/useSongs";
@@ -34,27 +33,45 @@ const Index = () => {
               <h1 className="text-2xl font-bold text-white">SongScope</h1>
             </div>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="text-white hover:text-purple-400 transition-colors">Browse</Link>
-              <Link to="/submit" className="text-white hover:text-purple-400 transition-colors">Submit Song</Link>
-              <Link to="/profile" className="text-white hover:text-purple-400 transition-colors">Profile</Link>
+              <Link to="/" className="flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors">
+                <Home className="h-4 w-4" />
+                <span>Browse</span>
+              </Link>
+              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                <Upload className="h-4 w-4" />
+                <span>Submit Song</span>
+              </Link>
+              <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                <UserCircle className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </nav>
             <div className="flex items-center space-x-2">
               {user ? (
                 <>
                   <span className="text-white text-sm">Welcome, {user.email}</span>
-                  <Button variant="outline" size="sm" onClick={signOut} className="text-white border-white/20 hover:bg-white/10">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={signOut} 
+                    className="text-white border-white/30 hover:bg-white/10 hover:border-white/50"
+                  >
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <>
                   <Link to="/auth">
-                    <Button variant="outline" size="sm" className="text-white border-white/20 hover:bg-white/10">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-white border-white/30 hover:bg-white/10 hover:border-white/50"
+                    >
                       Login
                     </Button>
                   </Link>
                   <Link to="/auth">
-                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
                       Sign Up
                     </Button>
                   </Link>
@@ -68,6 +85,9 @@ const Index = () => {
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
+          <div className="animate-bounce mb-6">
+            <Music className="h-20 w-20 text-purple-400 mx-auto" />
+          </div>
           <h2 className="text-5xl font-bold text-white mb-4">
             Discover & Review <span className="text-purple-400">Amazing Music</span>
           </h2>
@@ -111,16 +131,20 @@ const Index = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <Music className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+              <div className="animate-pulse">
+                <Music className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+              </div>
               <h3 className="text-2xl font-bold text-white">{songs.length}</h3>
               <p className="text-white/70">Songs Available</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <User className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+              <div className="animate-pulse">
+                <User className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+              </div>
               <h3 className="text-2xl font-bold text-white">
                 {user ? "Welcome!" : "Join Now"}
               </h3>
@@ -129,9 +153,11 @@ const Index = () => {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+              <div className="animate-pulse">
+                <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+              </div>
               <h3 className="text-2xl font-bold text-white">
                 {songs.reduce((sum, song) => sum + song.review_count, 0)}
               </h3>
@@ -148,13 +174,17 @@ const Index = () => {
           
           {isLoading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-400 border-t-transparent mx-auto"></div>
+              <Loader2 className="h-12 w-12 text-purple-400 mx-auto animate-spin" />
               <p className="text-white/70 mt-4">Loading songs...</p>
             </div>
           ) : songs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {songs.map((song) => (
-                <Card key={song.id} className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20 transition-all duration-300 group cursor-pointer">
+              {songs.map((song, index) => (
+                <Card 
+                  key={song.id} 
+                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20 transition-all duration-300 group cursor-pointer animate-in slide-in-from-bottom-4"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
                   <CardContent className="p-6">
                     <div className="relative mb-4 overflow-hidden rounded-lg">
                       <img
@@ -213,7 +243,9 @@ const Index = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <Music className="h-16 w-16 text-white/40 mx-auto mb-4" />
+              <div className="animate-bounce mb-4">
+                <Music className="h-16 w-16 text-white/40 mx-auto" />
+              </div>
               <p className="text-white/70 text-lg">No songs found. Be the first to submit one!</p>
             </div>
           )}
@@ -222,7 +254,7 @@ const Index = () => {
         {/* Call to Action */}
         <div className="text-center mt-16">
           <Link to={user ? "/submit" : "/auth"}>
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-3">
+            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-3 animate-pulse">
               <Music className="h-5 w-5 mr-2" />
               {user ? "Submit Your First Song" : "Join to Submit Songs"}
             </Button>

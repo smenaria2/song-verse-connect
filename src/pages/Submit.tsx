@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music, Youtube, AlertCircle, CheckCircle } from "lucide-react";
+import { Music, Youtube, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubmitSong } from "@/hooks/useSongs";
@@ -48,42 +48,32 @@ const Submit = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Updated genres with Indian music categories
   const genres = [
-    "Rock", "Pop", "Hip Hop", "Electronic", "Jazz", "Classical", 
-    "R&B", "Country", "Indie", "Alternative", "Grunge", "Metal", 
-    "Folk", "Blues", "Reggae", "Punk", "Funk", "Soul", "Disco", 
-    "House", "Techno", "Dubstep", "Ambient", "Experimental", 
-    "Bollywood", "Other"
+    "Hindustani Classical",
+    "Cover/Album", 
+    "Bollywood Film Music",
+    "Bhangra",
+    "Sufi/Qawwali",
+    "Indian Folk (e.g., Rajasthani, Baul, Lavani)",
+    "Indie/Indian Pop",
+    "Devotional (Bhajan/Kirtan)",
+    "Fusion (Classical + Western)",
+    "Western"
   ];
 
-  // Map display genre to database enum
+  // Map display genre to database enum - updated for new genres
   const genreToDbMapping: { [key: string]: string } = {
-    "Rock": "rock",
-    "Pop": "pop",
-    "Hip Hop": "hip_hop",
-    "Electronic": "electronic",
-    "Jazz": "jazz",
-    "Classical": "classical",
-    "R&B": "r_b",
-    "Country": "country",
-    "Indie": "indie",
-    "Alternative": "alternative",
-    "Grunge": "grunge",
-    "Metal": "metal",
-    "Folk": "folk",
-    "Blues": "blues",
-    "Reggae": "reggae",
-    "Punk": "punk",
-    "Funk": "funk",
-    "Soul": "soul",
-    "Disco": "disco",
-    "House": "house",
-    "Techno": "techno",
-    "Dubstep": "dubstep",
-    "Ambient": "ambient",
-    "Experimental": "experimental",
-    "Bollywood": "bollywood",
-    "Other": "other"
+    "Hindustani Classical": "classical",
+    "Cover/Album": "other",
+    "Bollywood Film Music": "bollywood",
+    "Bhangra": "folk",
+    "Sufi/Qawwali": "folk",
+    "Indian Folk (e.g., Rajasthani, Baul, Lavani)": "folk",
+    "Indie/Indian Pop": "indie",
+    "Devotional (Bhajan/Kirtan)": "folk",
+    "Fusion (Classical + Western)": "experimental",
+    "Western": "pop"
   };
 
   const extractYouTubeId = (url: string): string | null => {
@@ -269,12 +259,17 @@ const Submit = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <Card className="bg-white/10 border-white/20 backdrop-blur-md p-8">
-          <p className="text-white text-center mb-4">Please sign in to submit songs</p>
-          <Link to="/auth">
-            <Button className="w-full bg-purple-600 hover:bg-purple-700">
-              Sign In
-            </Button>
-          </Link>
+          <div className="text-center">
+            <div className="animate-pulse mb-4">
+              <Music className="h-16 w-16 text-purple-400 mx-auto" />
+            </div>
+            <p className="text-white text-center mb-4">Please sign in to submit songs</p>
+            <Link to="/auth">
+              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                Sign In
+              </Button>
+            </Link>
+          </div>
         </Card>
       </div>
     );
@@ -302,6 +297,9 @@ const Submit = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
+            <div className="animate-bounce mb-4">
+              <Music className="h-16 w-16 text-purple-400 mx-auto" />
+            </div>
             <h2 className="text-4xl font-bold text-white mb-4">Submit a Song</h2>
             <p className="text-white/80 text-lg">
               Share your favorite YouTube music with the community
@@ -335,7 +333,14 @@ const Submit = () => {
                     disabled={!youtubeUrl || isLoading}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    {isLoading ? "Loading..." : "Fetch"}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Fetch"
+                    )}
                   </Button>
                 </div>
                 <p className="text-white/60 text-sm">
@@ -357,7 +362,7 @@ const Submit = () => {
 
               {/* Step 2: Song Preview */}
               {songData && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
                   <div className="flex items-center text-green-400 mb-4">
                     <CheckCircle className="h-5 w-5 mr-2" />
                     Song information retrieved successfully!
@@ -366,11 +371,14 @@ const Submit = () => {
                   <Card className="bg-white/5 border-white/10">
                     <CardContent className="p-4">
                       <div className="flex items-start space-x-4">
-                        <img
-                          src={songData.thumbnail}
-                          alt="Song thumbnail"
-                          className="w-20 h-20 rounded-lg object-cover"
-                        />
+                        <div className="relative">
+                          <img
+                            src={songData.thumbnail}
+                            alt="Song thumbnail"
+                            className="w-20 h-20 rounded-lg object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/20 rounded-lg animate-pulse"></div>
+                        </div>
                         <div className="flex-1">
                           <h3 className="text-white font-semibold text-lg">{songData.title}</h3>
                           <p className="text-white/70">{songData.artist}</p>
@@ -420,8 +428,17 @@ const Submit = () => {
                     disabled={!genre || submitSongMutation.isPending}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-lg py-3"
                   >
-                    <Music className="h-5 w-5 mr-2" />
-                    {submitSongMutation.isPending ? "Submitting..." : "Submit Song for Review"}
+                    {submitSongMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Music className="h-5 w-5 mr-2" />
+                        Submit Song for Review
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -438,7 +455,7 @@ const Submit = () => {
                         <li>Check if the song has already been submitted</li>
                         <li>Ensure the content follows community guidelines</li>
                         <li>Add accurate genre information to help others discover</li>
-                        <li>Bollywood and Indian music is welcome!</li>
+                        <li>Indian music of all genres is especially welcome!</li>
                       </ul>
                     </div>
                   </div>
