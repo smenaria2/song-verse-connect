@@ -1,0 +1,94 @@
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+
+export interface Song {
+  id: string;
+  youtube_url: string;
+  youtube_id: string;
+  title: string;
+  artist: string;
+  genre: string;
+  release_year?: number;
+  thumbnail_url?: string;
+  duration?: string;
+  submitter_id: string;
+  created_at: string;
+  updated_at: string;
+  submitter_username?: string;
+  submitter_avatar?: string;
+  average_rating: number;
+  review_count: number;
+}
+
+export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
+  return useQuery({
+    queryKey: ['songs', searchTerm, selectedGenre],
+    queryFn: async () => {
+      let query = supabase.from('songs_with_stats').select('*');
+      
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,artist.ilike.%${searchTerm}%`);
+      }
+      
+      if (selectedGenre !== 'All') {
+        query = query.eq('genre', selectedGenre.toLowerCase().replace(' ', '_'));
+      }
+      
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching songs:', error);
+        throw error;
+      }
+      
+      return data as Song[];
+    }
+  });
+};
+
+export const useSubmitSong = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (songData: {
+      youtube_url: string;
+      youtube_id: string;
+      title: string;
+      artist: string;
+      genre: string;
+      thumbnail_url?: string;
+      duration?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('songs')
+        .insert([{
+          ...songData,
+          submitter_id: (await supabase.auth.getUser()).data.user?.id
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['songs'] });
+      toast({
+        title: "Success!",
+        description: "Song submitted successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit song",
+        variant: "destructive"
+      });
+    }
+  });
+};
