@@ -7,41 +7,199 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Music, Youtube, AlertCircle, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useSubmitSong } from "@/hooks/useSongs";
+import { useToast } from "@/components/ui/use-toast";
+
+interface SongData {
+  title: string;
+  artist: string;
+  thumbnail: string;
+  duration: string;
+}
 
 const Submit = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [songData, setSongData] = useState(null);
+  const [songData, setSongData] = useState<SongData | null>(null);
   const [genre, setGenre] = useState("");
   const [personalNote, setPersonalNote] = useState("");
+  
+  const { user } = useAuth();
+  const submitSongMutation = useSubmitSong();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const genres = ["Rock", "Pop", "Hip Hop", "Electronic", "Jazz", "Classical", "R&B", "Country", "Indie", "Alternative"];
+  const genres = [
+    "Rock", "Pop", "Hip Hop", "Electronic", "Jazz", "Classical", 
+    "R&B", "Country", "Indie", "Alternative", "Grunge", "Metal", 
+    "Folk", "Blues", "Reggae", "Punk", "Funk", "Soul", "Disco", 
+    "House", "Techno", "Dubstep", "Ambient", "Experimental", 
+    "Bollywood", "Other"
+  ];
+
+  // Map display genre to database enum
+  const genreToDbMapping: { [key: string]: string } = {
+    "Rock": "rock",
+    "Pop": "pop",
+    "Hip Hop": "hip_hop",
+    "Electronic": "electronic",
+    "Jazz": "jazz",
+    "Classical": "classical",
+    "R&B": "r_b",
+    "Country": "country",
+    "Indie": "indie",
+    "Alternative": "alternative",
+    "Grunge": "grunge",
+    "Metal": "metal",
+    "Folk": "folk",
+    "Blues": "blues",
+    "Reggae": "reggae",
+    "Punk": "punk",
+    "Funk": "funk",
+    "Soul": "soul",
+    "Disco": "disco",
+    "House": "house",
+    "Techno": "techno",
+    "Dubstep": "dubstep",
+    "Ambient": "ambient",
+    "Experimental": "experimental",
+    "Bollywood": "bollywood",
+    "Other": "other"
+  };
+
+  const extractYouTubeId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
 
   const handleUrlSubmit = async () => {
     if (!youtubeUrl.includes("youtube.com") && !youtubeUrl.includes("youtu.be")) {
-      alert("Please enter a valid YouTube URL");
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid YouTube URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const videoId = extractYouTubeId(youtubeUrl);
+    if (!videoId) {
+      toast({
+        title: "Invalid URL",
+        description: "Could not extract video ID from URL",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsLoading(true);
     
-    // Simulate API call to fetch song data
-    setTimeout(() => {
-      setSongData({
-        title: "Sample Song Title",
-        artist: "Sample Artist",
-        thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop",
-        duration: "3:45"
-      });
+    try {
+      // For now, we'll simulate fetching data
+      // TODO: Implement YouTube API integration
+      setTimeout(() => {
+        setSongData({
+          title: "Sample Song Title",
+          artist: "Sample Artist",
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          duration: "3:45"
+        });
+        setIsLoading(false);
+        
+        toast({
+          title: "Success",
+          description: "Song information retrieved successfully!"
+        });
+      }, 2000);
+    } catch (error) {
       setIsLoading(false);
-    }, 2000);
+      toast({
+        title: "Error",
+        description: "Failed to fetch song information",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleFinalSubmit = () => {
-    // Handle final song submission
-    alert("Song submitted successfully!");
+  const handleFinalSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to submit songs",
+        variant: "destructive"
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (!songData || !genre) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const videoId = extractYouTubeId(youtubeUrl);
+    if (!videoId) return;
+
+    const dbGenre = genreToDbMapping[genre];
+    if (!dbGenre) {
+      toast({
+        title: "Invalid Genre",
+        description: "Please select a valid genre",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await submitSongMutation.mutateAsync({
+        youtube_url: youtubeUrl,
+        youtube_id: videoId,
+        title: songData.title,
+        artist: songData.artist,
+        genre: dbGenre as any,
+        thumbnail_url: songData.thumbnail,
+        duration: songData.duration
+      });
+
+      // Reset form
+      setYoutubeUrl("");
+      setSongData(null);
+      setGenre("");
+      setPersonalNote("");
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Error submitting song:', error);
+    }
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <Card className="bg-white/10 border-white/20 backdrop-blur-md p-8">
+          <p className="text-white text-center mb-4">Please sign in to submit songs</p>
+          <Link to="/auth">
+            <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              Sign In
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -153,9 +311,11 @@ const Submit = () => {
                         <SelectTrigger className="bg-white/10 border-white/20 text-white">
                           <SelectValue placeholder="Select a genre" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-gray-900 border-gray-700">
                           {genres.map((g) => (
-                            <SelectItem key={g} value={g}>{g}</SelectItem>
+                            <SelectItem key={g} value={g} className="text-white hover:bg-gray-800">
+                              {g}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -178,11 +338,11 @@ const Submit = () => {
                   {/* Submit Button */}
                   <Button
                     onClick={handleFinalSubmit}
-                    disabled={!genre}
+                    disabled={!genre || submitSongMutation.isPending}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-lg py-3"
                   >
                     <Music className="h-5 w-5 mr-2" />
-                    Submit Song for Review
+                    {submitSongMutation.isPending ? "Submitting..." : "Submit Song for Review"}
                   </Button>
                 </div>
               )}
@@ -199,6 +359,7 @@ const Submit = () => {
                         <li>Check if the song has already been submitted</li>
                         <li>Ensure the content follows community guidelines</li>
                         <li>Add accurate genre information to help others discover</li>
+                        <li>Bollywood and Indian music is welcome!</li>
                       </ul>
                     </div>
                   </div>

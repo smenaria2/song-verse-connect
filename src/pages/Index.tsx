@@ -15,7 +15,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const { data: songs = [], isLoading } = useSongs(searchTerm, selectedGenre);
 
-  const genres = ["All", "Rock", "Pop", "Hip Hop", "Electronic", "Jazz", "Classical", "Grunge", "Alternative", "Indie"];
+  const genres = ["All", "Rock", "Pop", "Hip Hop", "Electronic", "Jazz", "Classical", "Grunge", "Alternative", "Indie", "Bollywood"];
 
   const formatGenre = (genre: string) => {
     return genre.split('_').map(word => 
@@ -89,19 +89,19 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Genre Filter */}
+          {/* Genre Filter - Fixed to match screenshot */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {genres.map((genre) => (
               <Button
                 key={genre}
-                variant={selectedGenre === genre ? "default" : "outline"}
+                variant={selectedGenre === genre ? "default" : "secondary"}
                 size="sm"
                 onClick={() => setSelectedGenre(genre)}
                 className={`${
                   selectedGenre === genre
-                    ? "bg-purple-600 hover:bg-purple-700"
-                    : "border-white/20 text-white hover:bg-white/10"
-                } transition-all`}
+                    ? "bg-purple-600 hover:bg-purple-700 text-white"
+                    : "bg-white/20 text-white hover:bg-white/30 border-0"
+                } transition-all rounded-full px-4 py-2`}
               >
                 {genre}
               </Button>

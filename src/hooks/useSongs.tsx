@@ -22,6 +22,24 @@ export interface Song {
   review_count: number;
 }
 
+// Define allowed genre values to match database enum
+type SongGenre = 'rock' | 'pop' | 'hip_hop' | 'electronic' | 'jazz' | 'classical' | 'country' | 'r_b' | 'indie' | 'alternative' | 'grunge' | 'metal' | 'folk' | 'blues' | 'reggae' | 'punk' | 'funk' | 'soul' | 'disco' | 'house' | 'techno' | 'dubstep' | 'ambient' | 'experimental' | 'bollywood' | 'other';
+
+// Map display genres to database enum values
+const genreMapping: { [key: string]: SongGenre } = {
+  'All': 'other', // This won't be used in filtering
+  'Rock': 'rock',
+  'Pop': 'pop',
+  'Hip Hop': 'hip_hop',
+  'Electronic': 'electronic',
+  'Jazz': 'jazz',
+  'Classical': 'classical',
+  'Grunge': 'grunge',
+  'Alternative': 'alternative',
+  'Indie': 'indie',
+  'Bollywood': 'bollywood'
+};
+
 export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
   return useQuery({
     queryKey: ['songs', searchTerm, selectedGenre],
@@ -33,7 +51,10 @@ export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
       }
       
       if (selectedGenre !== 'All') {
-        query = query.eq('genre', selectedGenre.toLowerCase().replace(' ', '_'));
+        const dbGenre = genreMapping[selectedGenre];
+        if (dbGenre) {
+          query = query.eq('genre', dbGenre);
+        }
       }
       
       query = query.order('created_at', { ascending: false });
@@ -60,16 +81,21 @@ export const useSubmitSong = () => {
       youtube_id: string;
       title: string;
       artist: string;
-      genre: string;
+      genre: SongGenre;
       thumbnail_url?: string;
       duration?: string;
     }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('songs')
-        .insert([{
+        .insert({
           ...songData,
-          submitter_id: (await supabase.auth.getUser()).data.user?.id
-        }])
+          submitter_id: userData.user.id
+        })
         .select()
         .single();
       
