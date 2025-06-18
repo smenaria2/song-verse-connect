@@ -191,7 +191,7 @@ const Profile = () => {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
               <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">SongScope</h1>
+              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
               <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">

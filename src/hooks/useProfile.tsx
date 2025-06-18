@@ -39,6 +39,33 @@ export const useProfile = (userId?: string) => {
         .eq('id', targetUserId)
         .single();
       
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, try to get user data from auth and create profile
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user && userData.user.id === targetUserId) {
+          const googleData = userData.user.user_metadata;
+          const newProfile = {
+            id: targetUserId,
+            username: googleData?.full_name || googleData?.name || userData.user.email?.split('@')[0] || 'User',
+            avatar_url: googleData?.avatar_url || googleData?.picture,
+            bio: null,
+            website: null,
+            location: null
+          };
+          
+          // Create the profile
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert(newProfile)
+            .select()
+            .single();
+            
+          if (createError) throw createError;
+          return createdProfile as Profile;
+        }
+        return null;
+      }
+      
       if (error) throw error;
       return data as Profile;
     },
