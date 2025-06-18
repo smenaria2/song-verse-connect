@@ -1,62 +1,70 @@
+
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import { useSongs } from "@/hooks/useSongs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, Star, Upload, User, UserCircle, LogOut, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Music, Search, Filter, Play, Star, User, Upload, UserCircle, LogOut, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useSongs } from "@/hooks/useSongs";
+import { useAuth } from "@/hooks/useAuth";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 
 interface Song {
   id: string;
-  youtube_url: string;
-  youtube_id: string;
   title: string;
   artist: string;
   genre: string;
-  release_year?: number;
+  youtube_id: string;
+  youtube_url: string;
   thumbnail_url?: string;
-  duration?: string;
-  submitter_id: string;
-  created_at: string;
-  updated_at: string;
-  submitter_username?: string;
+  submitter_username: string;
   submitter_avatar?: string;
   average_rating: number;
   review_count: number;
+  created_at: string;
 }
 
 const Index = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('All');
-  const { data: songs, isLoading } = useSongs(searchTerm, selectedGenre);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const { data: songs, isLoading, error } = useSongs();
   const { user, signOut } = useAuth();
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleGenreChange = (value: string) => {
-    setSelectedGenre(value);
-  };
+  const filteredSongs = songs?.filter(song => {
+    const matchesSearch = song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         song.artist.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGenre = !selectedGenre || song.genre === selectedGenre;
+    return matchesSearch && matchesGenre;
+  });
 
   const formatGenre = (genre: string) => {
     return genre.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-bounce mb-4">
+            <Music className="h-16 w-16 text-white/40 mx-auto" />
+          </div>
+          <p className="text-white">Failed to load songs. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
@@ -129,53 +137,39 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Search and Filter Section */}
-      <section className="bg-black/20 backdrop-blur-md py-8">
+      {/* Search and Filter */}
+      <section className="py-8 bg-white/5 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="md:col-span-1">
-              <Label htmlFor="search" className="text-white/80 block mb-2 text-sm font-medium">
-                Search
-              </Label>
+          <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
               <Input
-                type="text"
-                id="search"
-                placeholder="Search for songs or artists..."
-                className="bg-black/40 border-white/20 text-white focus-visible:ring-purple-500"
+                placeholder="Search songs or artists..."
                 value={searchTerm}
-                onChange={handleSearchChange}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
               />
             </div>
-
-            {/* Genre Filter */}
-            <div className="md:col-span-1">
-              <Label htmlFor="genre" className="text-white/80 block mb-2 text-sm font-medium">
-                Genre
-              </Label>
-              <Select onValueChange={handleGenreChange}>
-                <SelectTrigger className="bg-black/40 border-white/20 text-white focus-visible:ring-purple-500">
-                  <SelectValue placeholder="All Genres" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/60 backdrop-blur-md border-white/20 text-white">
-                  <SelectItem value="All">All Genres</SelectItem>
-                  <SelectItem value="Rock">Rock</SelectItem>
-                  <SelectItem value="Pop">Pop</SelectItem>
-                  <SelectItem value="Hip Hop">Hip Hop</SelectItem>
-                  <SelectItem value="Electronic">Electronic</SelectItem>
-                  <SelectItem value="Jazz">Jazz</SelectItem>
-                  <SelectItem value="Classical">Classical</SelectItem>
-                  <SelectItem value="Grunge">Grunge</SelectItem>
-                  <SelectItem value="Alternative">Alternative</SelectItem>
-                  <SelectItem value="Indie">Indie</SelectItem>
-                  <SelectItem value="Folk">Folk</SelectItem>
-                  <SelectItem value="Experimental">Experimental</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-md text-white appearance-none min-w-[150px]"
+              >
+                <option value="">All Genres</option>
+                <option value="rock">Rock</option>
+                <option value="pop">Pop</option>
+                <option value="hip_hop">Hip Hop</option>
+                <option value="electronic">Electronic</option>
+                <option value="jazz">Jazz</option>
+                <option value="classical">Classical</option>
+                <option value="country">Country</option>
+                <option value="r_b">R&B</option>
+                <option value="indie">Indie</option>
+                <option value="alternative">Alternative</option>
+              </select>
             </div>
-
-            {/* Empty div for spacing in the grid */}
-            <div className="md:col-span-1"></div>
           </div>
         </div>
       </section>
@@ -188,9 +182,9 @@ const Index = () => {
               <Loader2 className="h-12 w-12 text-purple-400 mx-auto animate-spin" />
               <p className="text-white/70 mt-4">Loading songs...</p>
             </div>
-          ) : songs && songs.length > 0 ? (
+          ) : filteredSongs && filteredSongs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {songs.map((song, index) => (
+              {filteredSongs.map((song, index) => (
                 <SongCard key={song.id} song={song} index={index} />
               ))}
             </div>
@@ -214,38 +208,78 @@ const Index = () => {
   );
 };
 
-interface SongCardProps {
-  song: Song;
-  index: number;
-}
+const SongCard = ({ song, index }: { song: Song; index: number }) => {
+  const { setCurrentSong, setIsPlaying } = useAudioPlayer();
 
-const SongCard = ({ song, index }: SongCardProps) => {
-  const { playPause } = useAudioPlayer();
+  const handlePlay = () => {
+    setCurrentSong({
+      id: song.id,
+      youtubeId: song.youtube_id,
+      title: song.title,
+      artist: song.artist
+    });
+    setIsPlaying(true);
+  };
+
+  const formatGenre = (genre: string) => {
+    return genre.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
-    <Card
-      className="bg-black/40 border-white/20 backdrop-blur-md hover:bg-black/50 transition-all duration-300 animate-in slide-in-from-bottom-4"
+    <Card 
+      className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 group animate-in slide-in-from-bottom-4"
       style={{ animationDelay: `${index * 100}ms` }}
-      onClick={() => playPause({
-        id: song.id,
-        youtubeId: song.youtube_id,
-        title: song.title,
-        artist: song.artist
-      })}
     >
-      <CardContent className="p-6">
-        <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-white hover:text-purple-400 transition-colors">{song.title}</h3>
-          <p className="text-white/70">{song.artist}</p>
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
-              {formatGenre(song.genre)}
-            </Badge>
-            <div className="flex items-center text-white/60">
-              <Star className="h-4 w-4 text-yellow-400 mr-1" />
-              {song.average_rating.toFixed(1)} ({song.review_count} reviews)
-            </div>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <Link to={`/song/${song.id}`}>
+              <CardTitle className="text-lg font-semibold text-white hover:text-purple-400 transition-colors cursor-pointer line-clamp-2">
+                {song.title}
+              </CardTitle>
+            </Link>
+            <p className="text-white/70 mt-1">{song.artist}</p>
           </div>
+          <Button
+            onClick={handlePlay}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:text-purple-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Play className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
+            {formatGenre(song.genre)}
+          </Badge>
+          <div className="flex items-center text-white/60">
+            <Star className="h-4 w-4 text-yellow-400 mr-1" />
+            {song.average_rating > 0 ? song.average_rating.toFixed(1) : 'N/A'} ({song.review_count})
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Avatar className="w-6 h-6">
+              <AvatarImage src={song.submitter_avatar || ""} alt={song.submitter_username} />
+              <AvatarFallback className="text-xs">{song.submitter_username[0].toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-white/70">{song.submitter_username}</span>
+          </div>
+          <span className="text-sm text-white/60">{formatDate(song.created_at)}</span>
         </div>
       </CardContent>
     </Card>

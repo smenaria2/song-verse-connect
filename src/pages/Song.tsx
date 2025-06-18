@@ -139,25 +139,31 @@ const Song = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="relative">
-                <Music className="h-8 w-8 text-orange-400" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
-              </div>
+              <Music className="h-8 w-8 text-purple-400" />
               <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <Home className="h-4 w-4" />
-                <span>Browse</span>
+              <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Browse</span>
               </Link>
-              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
+              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
                 <Upload className="h-4 w-4" />
                 <span>Submit Song</span>
               </Link>
-              <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <UserCircle className="h-4 w-4" />
-                <span>Profile</span>
-              </Link>
+              {user ? (
+                <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
+                  <UserCircle className="h-4 w-4" />
+                  <span>Profile</span>
+                </Link>
+              ) : (
+                <Link to="/auth">
+                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white">
+                    <User className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </nav>
           </div>
         </div>
