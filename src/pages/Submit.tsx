@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music, Youtube, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Music, Youtube, AlertCircle, CheckCircle, Loader2, Home, Upload, UserCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubmitSong } from "@/hooks/useSongs";
@@ -258,14 +258,12 @@ const Submit = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <Card className="bg-white/10 border-white/20 backdrop-blur-md p-8">
+        <Card className="bg-white/10 border-white/20 backdrop-blur-md p-8 animate-in slide-in-from-bottom-4 duration-1000">
           <div className="text-center">
-            <div className="animate-pulse mb-4">
-              <Music className="h-16 w-16 text-purple-400 mx-auto" />
-            </div>
+            <Music className="h-16 w-16 text-orange-400 mx-auto mb-4" />
             <p className="text-white text-center mb-4">Please sign in to submit songs</p>
             <Link to="/auth">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
+              <Button className="w-full bg-orange-600 hover:bg-orange-700">
                 Sign In
               </Button>
             </Link>
@@ -282,13 +280,25 @@ const Submit = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
-              <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">SongScope</h1>
+              <div className="relative">
+                <Music className="h-8 w-8 text-orange-400" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+              </div>
+              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="text-white hover:text-purple-400 transition-colors">Browse</Link>
-              <Link to="/submit" className="text-purple-400">Submit Song</Link>
-              <Link to="/profile" className="text-white hover:text-purple-400 transition-colors">Profile</Link>
+              <Link to="/" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
+                <Home className="h-4 w-4" />
+                <span>Browse</span>
+              </Link>
+              <Link to="/submit" className="flex items-center space-x-2 text-orange-400">
+                <Upload className="h-4 w-4" />
+                <span>Submit Song</span>
+              </Link>
+              <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
+                <UserCircle className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
             </nav>
           </div>
         </div>
@@ -296,9 +306,12 @@ const Submit = () => {
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="animate-bounce mb-4">
-              <Music className="h-16 w-16 text-purple-400 mx-auto" />
+          <div className="text-center mb-8 animate-in slide-in-from-top-4 duration-1000">
+            <div className="mb-4">
+              <div className="relative inline-block">
+                <Music className="h-16 w-16 text-orange-400 mx-auto" />
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full animate-pulse"></div>
+              </div>
             </div>
             <h2 className="text-4xl font-bold text-white mb-4">Submit a Song</h2>
             <p className="text-white/80 text-lg">
@@ -306,7 +319,7 @@ const Submit = () => {
             </p>
           </div>
 
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md">
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-bottom-4 duration-1000 delay-200">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <Youtube className="h-6 w-6 mr-2 text-red-500" />
@@ -360,7 +373,7 @@ const Submit = () => {
                 </Card>
               )}
 
-              {/* Step 2: Song Preview */}
+              {/* Step 2: Song Preview with YouTube Player */}
               {songData && (
                 <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
                   <div className="flex items-center text-green-400 mb-4">
@@ -370,19 +383,32 @@ const Submit = () => {
                   
                   <Card className="bg-white/5 border-white/10">
                     <CardContent className="p-4">
-                      <div className="flex items-start space-x-4">
-                        <div className="relative">
+                      <div className="space-y-4">
+                        {/* YouTube Video Player */}
+                        <div className="aspect-video rounded-lg overflow-hidden">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${extractYouTubeId(youtubeUrl)}?rel=0`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            className="rounded-lg"
+                          ></iframe>
+                        </div>
+                        
+                        <div className="flex items-start space-x-4">
                           <img
                             src={songData.thumbnail}
                             alt="Song thumbnail"
                             className="w-20 h-20 rounded-lg object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/20 rounded-lg animate-pulse"></div>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg">{songData.title}</h3>
-                          <p className="text-white/70">{songData.artist}</p>
-                          <p className="text-white/60 text-sm">Duration: {songData.duration}</p>
+                          <div className="flex-1">
+                            <h3 className="text-white font-semibold text-lg">{songData.title}</h3>
+                            <p className="text-white/70">{songData.artist}</p>
+                            <p className="text-white/60 text-sm">Duration: {songData.duration}</p>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -426,7 +452,7 @@ const Submit = () => {
                   <Button
                     onClick={handleFinalSubmit}
                     disabled={!genre || submitSongMutation.isPending}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-lg py-3"
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-lg py-3"
                   >
                     {submitSongMutation.isPending ? (
                       <>
