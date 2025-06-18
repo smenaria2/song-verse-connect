@@ -311,33 +311,34 @@ const Profile = () => {
           <TabsContent value="submitted" className="space-y-4">
             <div className="grid gap-4">
               {submittedSongs.length > 0 ? submittedSongs.map((song, index) => (
-                <Card 
-                  key={song.id} 
-                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-left-4"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-white">{song.title}</h3>
-                        <p className="text-white/70">{song.artist}</p>
-                        <div className="flex items-center space-x-4">
-                          <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
-                            {formatGenre(song.genre)}
-                          </Badge>
-                          <div className="flex items-center text-white/60">
-                            <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                            {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+                <Link key={song.id} to={`/song/${song.id}`}>
+                  <Card 
+                    className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 cursor-pointer animate-in slide-in-from-left-4"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors">{song.title}</h3>
+                          <p className="text-white/70">{song.artist}</p>
+                          <div className="flex items-center space-x-4">
+                            <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
+                              {formatGenre(song.genre)}
+                            </Badge>
+                            <div className="flex items-center text-white/60">
+                              <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                              {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right text-white/60">
+                          <p className="text-sm">Submitted</p>
+                          <p className="text-sm">{formatDate(song.created_at)}</p>
+                        </div>
                       </div>
-                      <div className="text-right text-white/60">
-                        <p className="text-sm">Submitted</p>
-                        <p className="text-sm">{formatDate(song.created_at)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               )) : (
                 <div className="text-center py-8 text-white/70">
                   <div className="animate-bounce mb-4">

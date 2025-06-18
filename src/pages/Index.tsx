@@ -1,19 +1,22 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2, ThumbsUp, MessageCircle } from "lucide-react";
+import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs } from "@/hooks/useSongs";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import MiniPlayer from "@/components/MiniPlayer";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
   const { user, signOut } = useAuth();
   const { data: songs = [], isLoading } = useSongs(searchTerm, selectedGenre);
+  const { currentSong, isPlaying, playPause } = useAudioPlayer();
 
   const genres = ["All", "Hindustani Classical", "Cover/Album", "Bollywood Film Music", "Bhangra", "Sufi/Qawwali", "Indian Folk", "Indie/Indian Pop", "Devotional", "Fusion", "Western"];
 
@@ -23,15 +26,13 @@ const Index = () => {
     ).join(' ');
   };
 
-  // Mock function to get best review for a song
-  const getBestReview = (songId: string) => {
-    // This would be replaced with actual data from your reviews system
-    const mockReviews = [
-      { id: '1', text: "Absolutely mesmerizing! The classical fusion in this track is phenomenal.", rating: 5, upvotes: 12, reviewer: "MusicLover123" },
-      { id: '2', text: "Beautiful composition with traditional elements.", rating: 4, upvotes: 8, reviewer: "ClassicalFan" },
-      { id: '3', text: "This song touches the soul. Perfect for meditation.", rating: 5, upvotes: 15, reviewer: "SoulSeeker" }
-    ];
-    return mockReviews[Math.floor(Math.random() * mockReviews.length)];
+  const handleSongPlay = (song: any) => {
+    playPause({
+      id: song.id,
+      youtubeId: song.youtube_id,
+      title: song.title,
+      artist: song.artist
+    });
   };
 
   return (
@@ -178,6 +179,19 @@ const Index = () => {
           </Card>
         </div>
 
+        {/* Current Playing Song */}
+        {currentSong && (
+          <div className="mb-8">
+            <MiniPlayer
+              youtubeId={currentSong.youtubeId}
+              title={currentSong.title}
+              artist={currentSong.artist}
+              isPlaying={isPlaying}
+              onPlayPause={() => playPause(currentSong)}
+            />
+          </div>
+        )}
+
         {/* Songs List */}
         <section>
           <h3 className="text-3xl font-bold text-white mb-8 text-center">
@@ -191,103 +205,74 @@ const Index = () => {
             </div>
           ) : songs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {songs.map((song, index) => {
-                const bestReview = getBestReview(song.id);
-                return (
-                  <Link key={song.id} to={`/song/${song.id}`}>
-                    <Card 
-                      className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20 transition-all duration-300 group cursor-pointer animate-in slide-in-from-bottom-4"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <CardContent className="p-6">
-                        <div className="relative mb-4 overflow-hidden rounded-lg">
-                          <img
-                            src={song.thumbnail_url || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop"}
-                            alt={song.title}
-                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <Play className="h-12 w-12 text-white" />
+              {songs.map((song, index) => (
+                <Card 
+                  key={song.id} 
+                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20 transition-all duration-300 group animate-in slide-in-from-bottom-4"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <CardContent className="p-6">
+                    <div className="relative mb-4 overflow-hidden rounded-lg">
+                      <img
+                        src={song.thumbnail_url || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop"}
+                        alt={song.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          onClick={() => handleSongPlay(song)}
+                          className="bg-orange-600 hover:bg-orange-700 text-white p-3 rounded-full transition-colors"
+                        >
+                          <Play className="h-6 w-6" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Link to={`/song/${song.id}`}>
+                          <h4 className="text-lg font-semibold text-white truncate hover:text-orange-400 transition-colors">{song.title}</h4>
+                        </Link>
+                        <p className="text-white/70">{song.artist}</p>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="bg-orange-600/20 text-orange-300 border-orange-600/30">
+                          {formatGenre(song.genre)}
+                        </Badge>
+                        {song.duration && (
+                          <div className="flex items-center text-white/60 text-sm">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {song.duration}
                           </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${
+                                i < Math.floor(song.average_rating)
+                                  ? "text-yellow-400 fill-current"
+                                  : "text-gray-400"
+                              }`}
+                            />
+                          ))}
+                          <span className="text-white/70 text-sm ml-2">
+                            {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+                          </span>
                         </div>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <h4 className="text-lg font-semibold text-white truncate">{song.title}</h4>
-                            <p className="text-white/70">{song.artist}</p>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary" className="bg-orange-600/20 text-orange-300 border-orange-600/30">
-                              {formatGenre(song.genre)}
-                            </Badge>
-                            {song.duration && (
-                              <div className="flex items-center text-white/60 text-sm">
-                                <Clock className="h-4 w-4 mr-1" />
-                                {song.duration}
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-4 w-4 ${
-                                    i < Math.floor(song.average_rating)
-                                      ? "text-yellow-400 fill-current"
-                                      : "text-gray-400"
-                                  }`}
-                                />
-                              ))}
-                              <span className="text-white/70 text-sm ml-2">
-                                {song.average_rating.toFixed(1)} ({song.review_count} reviews)
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Best Review Preview */}
-                          {bestReview && (
-                            <div className="bg-white/5 rounded-lg p-3 border-l-2 border-orange-400">
-                              <div className="flex items-start space-x-2">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarFallback className="text-xs">{bestReview.reviewer[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white/80 text-sm line-clamp-2">{bestReview.text}</p>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <div className="flex items-center space-x-1">
-                                      {[...Array(5)].map((_, i) => (
-                                        <Star
-                                          key={i}
-                                          className={`h-3 w-3 ${
-                                            i < bestReview.rating
-                                              ? "text-yellow-400 fill-current"
-                                              : "text-gray-400"
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                    <div className="flex items-center space-x-1 text-white/60 text-xs">
-                                      <ThumbsUp className="h-3 w-3" />
-                                      <span>{bestReview.upvotes}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          <p className="text-white/60 text-sm">
-                            Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
+                      </div>
+                      
+                      <p className="text-white/60 text-sm">
+                        Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           ) : (
             <div className="text-center py-12">
