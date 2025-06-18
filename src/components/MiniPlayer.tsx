@@ -22,13 +22,13 @@ const MiniPlayer = ({ youtubeId, title, artist, isPlaying, onPlayPause }: MiniPl
 
   useEffect(() => {
     // Load YouTube IFrame API
-    if (!window.YT) {
+    if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
-      window.onYouTubeIframeAPIReady = () => {
+      (window as any).onYouTubeIframeAPIReady = () => {
         initializePlayer();
       };
     } else {
@@ -43,8 +43,8 @@ const MiniPlayer = ({ youtubeId, title, artist, isPlaying, onPlayPause }: MiniPl
   }, [youtubeId]);
 
   const initializePlayer = () => {
-    if (window.YT && window.YT.Player) {
-      playerRef.current = new window.YT.Player(`youtube-player-${youtubeId}`, {
+    if ((window as any).YT && (window as any).YT.Player) {
+      playerRef.current = new (window as any).YT.Player(`youtube-player-${youtubeId}`, {
         height: '0',
         width: '0',
         videoId: youtubeId,
@@ -70,7 +70,7 @@ const MiniPlayer = ({ youtubeId, title, artist, isPlaying, onPlayPause }: MiniPl
   };
 
   const onPlayerStateChange = (event: any) => {
-    if (event.data === window.YT.PlayerState.PLAYING) {
+    if (event.data === (window as any).YT?.PlayerState?.PLAYING) {
       startTimeUpdate();
     } else {
       stopTimeUpdate();

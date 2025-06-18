@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -21,10 +22,10 @@ export interface Song {
   review_count: number;
 }
 
-// Define allowed genre values to match database enum - updated for new Indian genres
-type SongGenre = 'rock' | 'pop' | 'hip_hop' | 'electronic' | 'jazz' | 'classical' | 'country' | 'r_b' | 'indie' | 'alternative' | 'grunge' | 'metal' | 'folk' | 'blues' | 'reggae' | 'punk' | 'funk' | 'soul' | 'disco' | 'house' | 'techno' | 'dubstep' | 'ambient' | 'experimental' | 'bollywood' | 'other';
+// Define allowed genre values to match database enum - updated to match actual DB schema
+type SongGenre = 'rock' | 'pop' | 'hip_hop' | 'electronic' | 'jazz' | 'classical' | 'country' | 'r_b' | 'indie' | 'alternative' | 'grunge' | 'metal' | 'folk' | 'blues' | 'reggae' | 'punk' | 'funk' | 'soul' | 'disco' | 'house' | 'techno' | 'dubstep' | 'ambient' | 'experimental' | 'other';
 
-// Map display genres to database enum values - updated for new genres
+// Map display genres to database enum values - updated to match DB schema
 const genreMapping: { [key: string]: SongGenre } = {
   'All': 'other', // This won't be used in filtering
   'Rock': 'rock',
@@ -36,9 +37,18 @@ const genreMapping: { [key: string]: SongGenre } = {
   'Grunge': 'grunge',
   'Alternative': 'alternative',
   'Indie': 'indie',
-  'Bollywood': 'bollywood',
   'Folk': 'folk',
-  'Experimental': 'experimental'
+  'Experimental': 'experimental',
+  'Hindustani Classical': 'classical',
+  'Cover/Album': 'other',
+  'Bollywood Film Music': 'other',
+  'Bhangra': 'folk',
+  'Sufi/Qawwali': 'other',
+  'Indian Folk': 'folk',
+  'Indie/Indian Pop': 'indie',
+  'Devotional': 'other',
+  'Fusion': 'experimental',
+  'Western': 'other'
 };
 
 export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
