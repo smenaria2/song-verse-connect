@@ -9,6 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 
 interface UserProfile {
   id: string;
@@ -191,7 +192,7 @@ const Profile = () => {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
               <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">SongScope</h1>
+              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
               <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
@@ -211,15 +212,17 @@ const Profile = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 pb-24">
         {/* Profile Header */}
         <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
               <div className="relative">
-                <Avatar className="w-32 h-32 animate-pulse">
+                <Avatar className="w-32 h-32">
                   <AvatarImage src={profile.avatar_url || ""} alt={profile.username} />
-                  <AvatarFallback className="text-2xl">{profile.username[0].toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className={`text-2xl text-white ${getRandomAvatarColor(profile.id)}`}>
+                    {getUserInitials(profile.username)}
+                  </AvatarFallback>
                 </Avatar>
               </div>
               

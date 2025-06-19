@@ -9,7 +9,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs } from "@/hooks/useSongs";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-import MiniPlayer from "@/components/MiniPlayer";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,7 +69,7 @@ const Index = () => {
                     variant="outline" 
                     size="sm" 
                     onClick={signOut} 
-                    className="text-white border-white/30 hover:bg-white/10 hover:border-white/50 hover:text-white"
+                    className="text-white border-white/30 hover:bg-orange-600/20 hover:border-orange-400 hover:text-orange-400"
                   >
                     Sign Out
                   </Button>
@@ -81,7 +80,7 @@ const Index = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="text-white border-white/30 hover:bg-white/10 hover:border-white/50 hover:text-white"
+                      className="text-white border-white/30 hover:bg-orange-600/20 hover:border-orange-400 hover:text-orange-400"
                     >
                       Login
                     </Button>
@@ -99,7 +98,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12">
+      <section className="container mx-auto px-4 py-12 pb-24">
         <div className="text-center mb-12">
           <div className="mb-6 animate-in fade-in-0 duration-1000">
             <div className="relative inline-block">
@@ -178,19 +177,6 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Current Playing Song */}
-        {currentSong && (
-          <div className="mb-8">
-            <MiniPlayer
-              youtubeId={currentSong.youtubeId}
-              title={currentSong.title}
-              artist={currentSong.artist}
-              isPlaying={isPlaying}
-              onPlayPause={() => playPause(currentSong)}
-            />
-          </div>
-        )}
 
         {/* Songs List */}
         <section>

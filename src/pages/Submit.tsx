@@ -280,10 +280,7 @@ const Submit = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="relative">
-                <Music className="h-8 w-8 text-orange-400" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
-              </div>
+              <Music className="h-8 w-8 text-purple-400" />
               <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
