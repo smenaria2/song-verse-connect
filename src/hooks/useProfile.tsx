@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useSecurityValidation } from './useSecurityValidation';
 
 export interface Profile {
   id: string;
@@ -70,13 +70,25 @@ export const useUserStats = (userId?: string) => {
 
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
+  const { validateAndSanitizeProfile } = useSecurityValidation();
   
   return useMutation({
     mutationFn: async (updates: Partial<Profile>) => {
+      // Validate and sanitize input
+      const validatedUpdates = validateAndSanitizeProfile(updates);
+      if (!validatedUpdates) {
+        throw new Error('Validation failed');
+      }
+
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .update(validatedUpdates)
+        .eq('id', userData.user.id)
         .select()
         .single();
       

@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useSecurityValidation } from './useSecurityValidation';
 
 export interface Review {
   id: string;
@@ -49,6 +49,7 @@ export const useReviews = (songId: string) => {
 export const useSubmitReview = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { validateReviewSubmission } = useSecurityValidation();
   
   return useMutation({
     mutationFn: async (reviewData: {
@@ -56,17 +57,31 @@ export const useSubmitReview = () => {
       rating: number;
       review_text?: string;
     }) => {
+      // Validate and sanitize input
+      const validatedData = validateReviewSubmission({
+        rating: reviewData.rating,
+        review_text: reviewData.review_text,
+      });
+      
+      if (!validatedData) {
+        throw new Error('Validation failed');
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         throw new Error('User not authenticated');
       }
 
+      const finalReviewData = {
+        song_id: reviewData.song_id,
+        rating: validatedData.rating,
+        review_text: validatedData.review_text,
+        reviewer_id: userData.user.id
+      };
+
       const { data, error } = await supabase
         .from('reviews')
-        .insert({
-          ...reviewData,
-          reviewer_id: userData.user.id
-        })
+        .insert(finalReviewData)
         .select()
         .single();
       

@@ -1,7 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useSecurityValidation } from './useSecurityValidation';
+import { extractYouTubeId } from '@/utils/validation';
 
 export interface Song {
   id: string;
@@ -85,6 +86,7 @@ export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
 export const useSubmitSong = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { validateSongSubmission } = useSecurityValidation();
   
   return useMutation({
     mutationFn: async (songData: {
@@ -96,17 +98,39 @@ export const useSubmitSong = () => {
       thumbnail_url?: string;
       duration?: string;
     }) => {
+      // Validate and sanitize input
+      const validatedData = validateSongSubmission({
+        youtube_url: songData.youtube_url,
+        title: songData.title,
+        artist: songData.artist,
+      });
+      
+      if (!validatedData) {
+        throw new Error('Validation failed');
+      }
+
+      // Extract and validate YouTube ID
+      const extractedId = extractYouTubeId(songData.youtube_url);
+      if (!extractedId) {
+        throw new Error('Invalid YouTube URL');
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         throw new Error('User not authenticated');
       }
 
+      const finalSongData = {
+        ...songData,
+        title: validatedData.title,
+        artist: validatedData.artist,
+        youtube_id: extractedId,
+        submitter_id: userData.user.id
+      };
+
       const { data, error } = await supabase
         .from('songs')
-        .insert({
-          ...songData,
-          submitter_id: userData.user.id
-        })
+        .insert(finalSongData)
         .select()
         .single();
       
