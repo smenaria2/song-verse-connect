@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +7,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile, useUserStats } from "@/hooks/useProfile";
-import ProfilePictureUpload from "@/components/ProfilePictureUpload";
-import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface UserProfile {
+  id: string;
+  username: string;
+  bio?: string;
+  avatar_url?: string;
+  website?: string;
+  location?: string;
+  created_at: string;
+}
+
+interface UserStats {
+  songs_submitted: number;
+  reviews_written: number;
+  average_rating_given: number;
+  following_count: number;
+  followers_count: number;
+}
 
 interface SubmittedSong {
   id: string;
@@ -36,12 +51,12 @@ interface UserReview {
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [submittedSongs, setSubmittedSongs] = useState<SubmittedSong[]>([]);
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { data: profile, refetch: refetchProfile } = useProfile();
-  const { data: stats } = useUserStats();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,6 +73,27 @@ const Profile = () => {
 
     try {
       setLoading(true);
+
+      // Fetch user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      // Fetch user stats
+      const { data: statsData, error: statsError } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!statsError && statsData) {
+        setStats(statsData);
+      }
 
       // Fetch submitted songs
       const { data: songsData, error: songsError } = await supabase
@@ -109,11 +145,6 @@ const Profile = () => {
     }
   };
 
-  const handleAvatarUpdate = async (newAvatarUrl: string) => {
-    // Refetch profile to update the UI
-    await refetchProfile();
-  };
-
   const formatGenre = (genre: string) => {
     return genre.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
@@ -160,7 +191,7 @@ const Profile = () => {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
               <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
+              <h1 className="text-2xl font-bold text-white">SongScope</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
               <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
@@ -186,14 +217,10 @@ const Profile = () => {
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
               <div className="relative">
-                {user && (
-                  <ProfilePictureUpload
-                    currentAvatarUrl={profile.avatar_url}
-                    username={profile.username}
-                    userId={user.id}
-                    onAvatarUpdate={handleAvatarUpdate}
-                  />
-                )}
+                <Avatar className="w-32 h-32 animate-pulse">
+                  <AvatarImage src={profile.avatar_url || ""} alt={profile.username} />
+                  <AvatarFallback className="text-2xl">{profile.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
               </div>
               
               <div className="flex-1 space-y-4">
@@ -205,7 +232,7 @@ const Profile = () => {
                   <Button
                     onClick={() => setIsEditing(!isEditing)}
                     variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+                    className="border-white/20 text-white hover:bg-white/10"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
@@ -270,13 +297,13 @@ const Profile = () => {
         {/* Content Tabs */}
         <Tabs defaultValue="submitted" className="space-y-6">
           <TabsList className="bg-white/10 border-white/20">
-            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600">
               Submitted Songs
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600">
               My Reviews
             </TabsTrigger>
-            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600">
               Following
             </TabsTrigger>
           </TabsList>

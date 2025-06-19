@@ -2,22 +2,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
-import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 interface MiniPlayerProps {
   youtubeId: string;
   title: string;
   artist: string;
+  isPlaying: boolean;
+  onPlayPause: () => void;
 }
 
-const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
-  const { isPlaying, setIsPlaying, currentSong, setCurrentSong } = useAudioPlayer();
+const MiniPlayer = ({ youtubeId, title, artist, isPlaying, onPlayPause }: MiniPlayerProps) => {
   const [volume, setVolume] = useState([50]);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -42,27 +41,6 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
       }
     };
   }, [youtubeId]);
-
-  // Update player when song changes
-  useEffect(() => {
-    if (playerRef.current && playerRef.current.loadVideoById) {
-      playerRef.current.loadVideoById(youtubeId);
-      if (isPlaying) {
-        playerRef.current.playVideo();
-      }
-    }
-  }, [youtubeId]);
-
-  // Sync with global playing state
-  useEffect(() => {
-    if (playerRef.current) {
-      if (isPlaying && currentSong?.youtubeId === youtubeId) {
-        playerRef.current.playVideo();
-      } else {
-        playerRef.current.pauseVideo();
-      }
-    }
-  }, [isPlaying, currentSong?.youtubeId, youtubeId]);
 
   const initializePlayer = () => {
     if ((window as any).YT && (window as any).YT.Player) {
@@ -100,9 +78,6 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
   };
 
   const startTimeUpdate = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     intervalRef.current = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
         setCurrentTime(playerRef.current.getCurrentTime());
@@ -119,21 +94,13 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
 
   const handlePlayPause = () => {
     if (playerRef.current) {
-      if (isPlaying && currentSong?.youtubeId === youtubeId) {
+      if (isPlaying) {
         playerRef.current.pauseVideo();
-        setIsPlaying(false);
       } else {
-        // Set this as the current song
-        setCurrentSong({
-          id: youtubeId,
-          youtubeId,
-          title,
-          artist
-        });
         playerRef.current.playVideo();
-        setIsPlaying(true);
       }
     }
+    onPlayPause();
   };
 
   const handleVolumeChange = (newVolume: number[]) => {
@@ -161,28 +128,14 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
     }
   };
 
-  const handleClose = () => {
-    if (playerRef.current) {
-      playerRef.current.pauseVideo();
-    }
-    setIsPlaying(false);
-    setCurrentSong(null);
-    setIsVisible(false);
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Only show if this is the current song and it's supposed to be visible
-  if (!isVisible || !currentSong || currentSong.youtubeId !== youtubeId) {
-    return <div id={`youtube-player-${youtubeId}`} style={{ display: 'none' }}></div>;
-  }
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur-md border-t border-white/20 p-3 space-y-2 z-50">
+    <div className="bg-black/40 backdrop-blur-md border border-white/20 rounded-lg p-3 space-y-2">
       <div id={`youtube-player-${youtubeId}`} style={{ display: 'none' }}></div>
       
       <div className="flex items-center space-x-3">
@@ -190,13 +143,9 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
           variant="ghost"
           size="sm"
           onClick={handlePlayPause}
-          className="text-white hover:text-orange-400 p-1 hover:bg-white/10"
+          className="text-white hover:text-orange-400 p-1"
         >
-          {isPlaying && currentSong?.youtubeId === youtubeId ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </Button>
         
         <div className="flex-1 min-w-0">
@@ -209,7 +158,7 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
             variant="ghost"
             size="sm"
             onClick={handleMute}
-            className="text-white hover:text-orange-400 p-1 hover:bg-white/10"
+            className="text-white hover:text-orange-400 p-1"
           >
             {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
           </Button>
@@ -223,15 +172,6 @@ const MiniPlayer = ({ youtubeId, title, artist }: MiniPlayerProps) => {
               className="w-full"
             />
           </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="text-white hover:text-red-400 p-1 hover:bg-white/10"
-          >
-            <X className="h-3 w-3" />
-          </Button>
         </div>
       </div>
       

@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AudioPlayerProvider } from "@/hooks/useAudioPlayer";
-import GlobalMiniPlayer from "@/components/GlobalMiniPlayer";
 import Index from "./pages/Index";
 import Submit from "./pages/Submit";
 import Profile from "./pages/Profile";
@@ -32,7 +31,6 @@ const App = () => (
               <Route path="/song/:id" element={<Song />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <GlobalMiniPlayer />
           </BrowserRouter>
         </TooltipProvider>
       </AudioPlayerProvider>
