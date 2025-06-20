@@ -1,21 +1,27 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2, Plus, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs } from "@/hooks/useSongs";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useSubmitReview } from "@/hooks/useReviews";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
+import PlaylistModal from "@/components/PlaylistModal";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("All");
+  const [reviews, setReviews] = useState<{[key: string]: {rating: number, text: string}}>({});
   const { user, signOut } = useAuth();
   const { data: songs = [], isLoading } = useSongs(searchTerm, selectedGenre);
   const { currentSong, isPlaying, playPause } = useAudioPlayer();
+  const submitReview = useSubmitReview();
 
   const genres = ["All", "Hindustani Classical", "Cover/Album", "Bollywood Film Music", "Bhangra", "Sufi/Qawwali", "Indian Folk", "Indie/Indian Pop", "Devotional", "Fusion", "Western"];
 
@@ -32,6 +38,42 @@ const Index = () => {
       title: song.title,
       artist: song.artist
     });
+  };
+
+  const handleReviewSubmit = async (songId: string) => {
+    const review = reviews[songId];
+    if (!review || review.rating === 0) return;
+
+    try {
+      await submitReview.mutateAsync({
+        song_id: songId,
+        rating: review.rating,
+        review_text: review.text || undefined
+      });
+      
+      // Clear the review form
+      setReviews(prev => {
+        const newReviews = { ...prev };
+        delete newReviews[songId];
+        return newReviews;
+      });
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+    }
+  };
+
+  const handleRatingChange = (songId: string, rating: number) => {
+    setReviews(prev => ({
+      ...prev,
+      [songId]: { ...prev[songId], rating }
+    }));
+  };
+
+  const handleReviewTextChange = (songId: string, text: string) => {
+    setReviews(prev => ({
+      ...prev,
+      [songId]: { ...prev[songId], text, rating: prev[songId]?.rating || 0 }
+    }));
   };
 
   return (
@@ -56,6 +98,7 @@ const Index = () => {
                 <Upload className="h-4 w-4" />
                 <span>Submit Song</span>
               </Link>
+              {user && <PlaylistModal />}
               <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
                 <UserCircle className="h-4 w-4" />
                 <span>Profile</span>
@@ -69,8 +112,9 @@ const Index = () => {
                     variant="outline" 
                     size="sm" 
                     onClick={signOut} 
-                    className="text-white border-white/30 hover:bg-orange-600/20 hover:border-orange-400 hover:text-orange-400"
+                    className="border-orange-500/50 bg-orange-600/20 text-orange-300 hover:bg-orange-600/30 hover:text-white"
                   >
+                    <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </Button>
                 </>
@@ -220,6 +264,9 @@ const Index = () => {
                           <h4 className="text-lg font-semibold text-white truncate hover:text-orange-400 transition-colors">{song.title}</h4>
                         </Link>
                         <p className="text-white/70">{song.artist}</p>
+                        {song.description && (
+                          <p className="text-white/60 text-sm mt-2 line-clamp-2">{song.description}</p>
+                        )}
                       </div>
                       
                       <div className="flex flex-wrap gap-2">
@@ -268,6 +315,46 @@ const Index = () => {
                           />
                         )}
                       </div>
+
+                      {/* Quick Review Form */}
+                      {user && (
+                        <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-white/80 text-sm font-medium">Quick Review</span>
+                          </div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <button
+                                key={rating}
+                                onClick={() => handleRatingChange(song.id, rating)}
+                                className="hover:scale-110 transition-transform"
+                              >
+                                <Star
+                                  className={`h-4 w-4 ${
+                                    rating <= (reviews[song.id]?.rating || 0)
+                                      ? "text-yellow-400 fill-current"
+                                      : "text-gray-400 hover:text-yellow-300"
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                          <Textarea
+                            placeholder="Write your review..."
+                            value={reviews[song.id]?.text || ''}
+                            onChange={(e) => handleReviewTextChange(song.id, e.target.value)}
+                            className="w-full h-16 bg-white/10 border-white/20 text-white text-sm placeholder-white/50 resize-none"
+                          />
+                          <Button
+                            onClick={() => handleReviewSubmit(song.id)}
+                            disabled={!reviews[song.id]?.rating || submitReview.isPending}
+                            size="sm"
+                            className="mt-2 bg-orange-600 hover:bg-orange-700 text-white"
+                          >
+                            {submitReview.isPending ? "Submitting..." : "Submit Review"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

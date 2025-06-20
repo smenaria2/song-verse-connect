@@ -1,10 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play, ListMusic } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play, ListMusic, LogOut, Save, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,19 +55,23 @@ interface UserReview {
   review_text?: string;
   created_at: string;
   song: {
+    id: string;
     title: string;
     artist: string;
+    youtube_id: string;
   };
 }
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editProfile, setEditProfile] = useState<Partial<UserProfile>>({});
   const [stats, setStats] = useState<UserStats | null>(null);
   const [submittedSongs, setSubmittedSongs] = useState<SubmittedSong[]>([]);
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { currentSong, isPlaying, playPause } = useAudioPlayer();
@@ -94,6 +101,7 @@ const Profile = () => {
 
       if (profileError) throw profileError;
       setProfile(profileData);
+      setEditProfile(profileData);
 
       // Fetch user stats
       const { data: statsData, error: statsError } = await supabase
@@ -117,7 +125,7 @@ const Profile = () => {
         setSubmittedSongs(songsData);
       }
 
-      // Fetch user reviews
+      // Fetch user reviews with song details
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
         .select(`
@@ -125,7 +133,7 @@ const Profile = () => {
           rating,
           review_text,
           created_at,
-          songs!inner(title, artist)
+          songs!inner(id, title, artist, youtube_id)
         `)
         .eq('reviewer_id', user.id)
         .order('created_at', { ascending: false });
@@ -137,8 +145,10 @@ const Profile = () => {
           review_text: review.review_text,
           created_at: review.created_at,
           song: {
+            id: (review.songs as any).id,
             title: (review.songs as any).title,
-            artist: (review.songs as any).artist
+            artist: (review.songs as any).artist,
+            youtube_id: (review.songs as any).youtube_id
           }
         }));
         setUserReviews(formattedReviews);
@@ -153,6 +163,43 @@ const Profile = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+
+    try {
+      setSaving(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          username: editProfile.username,
+          bio: editProfile.bio,
+          website: editProfile.website,
+          location: editProfile.location
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProfile(data);
+      setIsEditing(false);
+      toast({
+        title: "Success!",
+        description: "Profile updated successfully!"
+      });
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -223,10 +270,15 @@ const Profile = () => {
                 <span>Submit Song</span>
               </Link>
               <PlaylistModal />
-              <Link to="/profile" className="flex items-center space-x-2 text-purple-400">
-                <UserCircle className="h-4 w-4" />
-                <span>Profile</span>
-              </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={signOut} 
+                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </nav>
             {/* Mobile Navigation */}
             {isMobile && (
@@ -238,9 +290,14 @@ const Profile = () => {
                   <Upload className="h-5 w-5" />
                 </Link>
                 <PlaylistModal />
-                <Link to="/profile" className="p-2 text-purple-400">
-                  <UserCircle className="h-5 w-5" />
-                </Link>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={signOut} 
+                  className="p-2 text-purple-300 hover:text-white hover:bg-purple-600/20"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
               </div>
             )}
           </div>
@@ -264,43 +321,105 @@ const Profile = () => {
               <div className="flex-1 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-3xl font-bold text-white">{profile.username}</h2>
+                    {isEditing ? (
+                      <Input
+                        value={editProfile.username || ''}
+                        onChange={(e) => setEditProfile(prev => ({ ...prev, username: e.target.value }))}
+                        className="text-3xl font-bold bg-white/10 border-white/20 text-white mb-2"
+                        placeholder="Username"
+                      />
+                    ) : (
+                      <h2 className="text-3xl font-bold text-white">{profile.username}</h2>
+                    )}
                     <p className="text-white/70 text-lg">{user?.email}</p>
                   </div>
-                  <Button
-                    onClick={()=> setIsEditing(!isEditing)}
-                    variant="outline"
-                    className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                </div>
-                
-                {profile.bio && (
-                  <p className="text-white/80">{profile.bio}</p>
-                )}
-                
-                <div className="flex flex-wrap gap-4 text-white/70">
-                  {profile.location && (
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {profile.location}
-                    </div>
-                  )}
-                  {profile.website && (
-                    <div className="flex items-center">
-                      <LinkIcon className="h-4 w-4 mr-1" />
-                      <a href={profile.website} className="text-purple-400 hover:underline" target="_blank" rel="noopener noreferrer">
-                        {profile.website}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Joined {formatDate(profile.created_at)}
+                  <div className="flex items-center space-x-2">
+                    {isEditing ? (
+                      <>
+                        <Button
+                          onClick={handleSaveProfile}
+                          disabled={saving}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {saving ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setIsEditing(false);
+                            setEditProfile(profile);
+                          }}
+                          variant="outline"
+                          className="border-red-500/50 bg-red-600/20 text-red-300 hover:bg-red-600/30 hover:text-white"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        variant="outline"
+                        className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    )}
                   </div>
                 </div>
+                
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <Textarea
+                      value={editProfile.bio || ''}
+                      onChange={(e) => setEditProfile(prev => ({ ...prev, bio: e.target.value }))}
+                      placeholder="Tell us about yourself..."
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        value={editProfile.location || ''}
+                        onChange={(e) => setEditProfile(prev => ({ ...prev, location: e.target.value }))}
+                        placeholder="Location"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                      <Input
+                        value={editProfile.website || ''}
+                        onChange={(e) => setEditProfile(prev => ({ ...prev, website: e.target.value }))}
+                        placeholder="Website URL"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {profile.bio && (
+                      <p className="text-white/80">{profile.bio}</p>
+                    )}
+                    
+                    <div className="flex flex-wrap gap-4 text-white/70">
+                      {profile.location && (
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {profile.location}
+                        </div>
+                      )}
+                      {profile.website && (
+                        <div className="flex items-center">
+                          <LinkIcon className="h-4 w-4 mr-1" />
+                          <a href={profile.website} className="text-purple-400 hover:underline" target="_blank" rel="noopener noreferrer">
+                            {profile.website}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Joined {formatDate(profile.created_at)}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             
@@ -432,7 +551,7 @@ const Profile = () => {
                             ))}
                           </div>
                           <Button
-                            onClick={() => handleSongPlay({ id: review.id, youtube_id: 'temp', title: review.song.title, artist: review.song.artist })}
+                            onClick={() => handleSongPlay(review.song)}
                             variant="outline"
                             size="sm"
                             className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
