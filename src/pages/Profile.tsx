@@ -4,12 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2 } from "lucide-react";
+import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import PlaylistModal from "@/components/PlaylistModal";
+import AddToPlaylistModal from "@/components/AddToPlaylistModal";
+import { usePlaylists, usePlaylistWithSongs } from "@/hooks/usePlaylists";
 
 interface UserProfile {
   id: string;
@@ -37,6 +41,7 @@ interface SubmittedSong {
   average_rating: number;
   review_count: number;
   created_at: string;
+  youtube_id: string;
 }
 
 interface UserReview {
@@ -60,6 +65,8 @@ const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { currentSong, isPlaying, playPause } = useAudioPlayer();
+  const { data: playlists = [] } = usePlaylists();
 
   useEffect(() => {
     if (!user) {
@@ -144,6 +151,15 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSongPlay = (song: any) => {
+    playPause({
+      id: song.id,
+      youtubeId: song.youtube_id,
+      title: song.title,
+      artist: song.artist
+    });
   };
 
   const formatGenre = (genre: string) => {
@@ -306,6 +322,9 @@ const Profile = () => {
             <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600">
               My Reviews
             </TabsTrigger>
+            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600">
+              My Playlists
+            </TabsTrigger>
             <TabsTrigger value="following" className="data-[state=active]:bg-purple-600">
               Following
             </TabsTrigger>
@@ -314,13 +333,14 @@ const Profile = () => {
           <TabsContent value="submitted" className="space-y-4">
             <div className="grid gap-4">
               {submittedSongs.length > 0 ? submittedSongs.map((song, index) => (
-                <Link key={song.id} to={`/song/${song.id}`}>
-                  <Card 
-                    className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 cursor-pointer animate-in slide-in-from-left-4"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
+                <Card 
+                  key={song.id}
+                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-left-4"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <Link to={`/song/${song.id}`} className="flex-1">
                         <div className="space-y-2">
                           <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors">{song.title}</h3>
                           <p className="text-white/70">{song.artist}</p>
@@ -334,14 +354,25 @@ const Profile = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right text-white/60">
-                          <p className="text-sm">Submitted</p>
-                          <p className="text-sm">{formatDate(song.created_at)}</p>
-                        </div>
+                      </Link>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <AddToPlaylistModal songId={song.id} songTitle={song.title} />
+                        <Button
+                          onClick={() => handleSongPlay(song)}
+                          variant="outline"
+                          size="sm"
+                          className="border-white/20 text-white hover:bg-white/10"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      <div className="text-right text-white/60 ml-4">
+                        <p className="text-sm">Submitted</p>
+                        <p className="text-sm">{formatDate(song.created_at)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )) : (
                 <div className="text-center py-8 text-white/70">
                   <div className="animate-bounce mb-4">
@@ -364,21 +395,31 @@ const Profile = () => {
                   <CardContent className="p-6">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                           <h3 className="text-lg font-semibold text-white">{review.song.title}</h3>
                           <p className="text-white/70">{review.song.artist}</p>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < review.rating
-                                  ? "text-yellow-400 fill-current"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          ))}
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${
+                                  i < review.rating
+                                    ? "text-yellow-400 fill-current"
+                                    : "text-gray-400"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <Button
+                            onClick={() => handleSongPlay({ id: review.id, youtube_id: 'temp', title: review.song.title, artist: review.song.artist })}
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                       {review.review_text && (
@@ -401,6 +442,25 @@ const Profile = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="playlists" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-white">My Playlists</h3>
+              <PlaylistModal />
+            </div>
+            <div className="grid gap-4">
+              {playlists.length > 0 ? playlists.map((playlist, index) => (
+                <PlaylistCard key={playlist.id} playlist={playlist} index={index} />
+              )) : (
+                <div className="text-center py-8 text-white/70">
+                  <div className="animate-bounce mb-4">
+                    <Music className="h-12 w-12 text-white/40 mx-auto" />
+                  </div>
+                  <p>No playlists created yet.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="following" className="space-y-4">
             <div className="text-center py-8">
               <div className="animate-pulse mb-4">
@@ -412,6 +472,68 @@ const Profile = () => {
         </Tabs>
       </div>
     </div>
+  );
+};
+
+// New component for playlist cards
+const PlaylistCard = ({ playlist, index }: { playlist: any; index: number }) => {
+  const { data: playlistWithSongs } = usePlaylistWithSongs(playlist.id);
+  const { playPause } = useAudioPlayer();
+
+  const handlePlayPlaylist = () => {
+    if (playlistWithSongs?.songs?.length) {
+      const firstSong = playlistWithSongs.songs[0];
+      playPause({
+        id: firstSong.id,
+        youtubeId: firstSong.youtube_id,
+        title: firstSong.title,
+        artist: firstSong.artist
+      });
+    }
+  };
+
+  return (
+    <Card 
+      className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-bottom-4"
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-white">{playlist.name}</h3>
+            {playlist.description && (
+              <p className="text-white/70">{playlist.description}</p>
+            )}
+            <div className="flex items-center space-x-4">
+              <span className="text-white/60 text-sm">
+                {playlistWithSongs?.songs?.length || 0} songs
+              </span>
+              {playlist.is_public && (
+                <Badge variant="secondary" className="bg-green-600/20 text-green-300">
+                  Public
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {playlistWithSongs?.songs?.length > 0 && (
+              <Button
+                onClick={handlePlayPlaylist}
+                variant="outline"
+                size="sm"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Play className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="text-right text-white/60">
+            <p className="text-sm">Created</p>
+            <p className="text-sm">{new Date(playlist.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

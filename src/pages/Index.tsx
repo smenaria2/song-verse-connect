@@ -1,14 +1,14 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2 } from "lucide-react";
+import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs } from "@/hooks/useSongs";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -252,9 +252,22 @@ const Index = () => {
                         </div>
                       </div>
                       
-                      <p className="text-white/60 text-sm">
-                        Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white/60 text-sm">
+                          Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
+                        </p>
+                        {user && (
+                          <AddToPlaylistModal 
+                            songId={song.id} 
+                            songTitle={song.title}
+                            trigger={
+                              <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
