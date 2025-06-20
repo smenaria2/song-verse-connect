@@ -133,6 +133,18 @@ export const useAddSongToPlaylist = () => {
 
   return useMutation({
     mutationFn: async ({ playlistId, songId }: { playlistId: string; songId: string }) => {
+      // Check if song already exists in playlist
+      const { data: existingSong } = await supabase
+        .from('playlist_songs')
+        .select('id')
+        .eq('playlist_id', playlistId)
+        .eq('song_id', songId)
+        .single();
+
+      if (existingSong) {
+        throw new Error('Song already exists in this playlist');
+      }
+
       // Get the current max position in the playlist
       const { data: maxPos } = await supabase
         .from('playlist_songs')

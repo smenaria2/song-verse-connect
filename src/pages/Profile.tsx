@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play } from "lucide-react";
+import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play, ListMusic } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,9 @@ import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import PlaylistModal from "@/components/PlaylistModal";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
+import PlaylistViewer from "@/components/PlaylistViewer";
 import { usePlaylists, usePlaylistWithSongs } from "@/hooks/usePlaylists";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface UserProfile {
   id: string;
@@ -67,6 +69,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { currentSong, isPlaying, playPause } = useAudioPlayer();
   const { data: playlists = [] } = usePlaylists();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user) {
@@ -210,7 +213,7 @@ const Profile = () => {
               <Music className="h-8 w-8 text-purple-400" />
               <h1 className="text-2xl font-bold text-white">Song Monk</h1>
             </Link>
-            <nav className="hidden md:flex items-center space-x-6">
+            <nav className={`${isMobile ? 'hidden' : 'flex'} items-center space-x-6`}>
               <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
                 <Home className="h-4 w-4" />
                 <span>Browse</span>
@@ -219,11 +222,27 @@ const Profile = () => {
                 <Upload className="h-4 w-4" />
                 <span>Submit Song</span>
               </Link>
+              <PlaylistModal />
               <Link to="/profile" className="flex items-center space-x-2 text-purple-400">
                 <UserCircle className="h-4 w-4" />
                 <span>Profile</span>
               </Link>
             </nav>
+            {/* Mobile Navigation */}
+            {isMobile && (
+              <div className="flex items-center space-x-2">
+                <Link to="/" className="p-2 text-white hover:text-purple-400">
+                  <Home className="h-5 w-5" />
+                </Link>
+                <Link to="/submit" className="p-2 text-white hover:text-purple-400">
+                  <Upload className="h-5 w-5" />
+                </Link>
+                <PlaylistModal />
+                <Link to="/profile" className="p-2 text-purple-400">
+                  <UserCircle className="h-5 w-5" />
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -249,9 +268,9 @@ const Profile = () => {
                     <p className="text-white/70 text-lg">{user?.email}</p>
                   </div>
                   <Button
-                    onClick={() => setIsEditing(!isEditing)}
+                    onClick={()=> setIsEditing(!isEditing)}
                     variant="outline"
-                    className="border-white/20 text-white hover:bg-white/10"
+                    className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
@@ -316,16 +335,16 @@ const Profile = () => {
         {/* Content Tabs */}
         <Tabs defaultValue="submitted" className="space-y-6">
           <TabsList className="bg-white/10 border-white/20">
-            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600 text-white">
               Submitted Songs
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 text-white">
               My Reviews
             </TabsTrigger>
-            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600 text-white">
               My Playlists
             </TabsTrigger>
-            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 text-white">
               Following
             </TabsTrigger>
           </TabsList>
@@ -361,7 +380,7 @@ const Profile = () => {
                           onClick={() => handleSongPlay(song)}
                           variant="outline"
                           size="sm"
-                          className="border-white/20 text-white hover:bg-white/10"
+                          className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
                         >
                           <Play className="h-4 w-4" />
                         </Button>
@@ -416,7 +435,7 @@ const Profile = () => {
                             onClick={() => handleSongPlay({ id: review.id, youtube_id: 'temp', title: review.song.title, artist: review.song.artist })}
                             variant="outline"
                             size="sm"
-                            className="border-white/20 text-white hover:bg-white/10"
+                            className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
                           >
                             <Play className="h-4 w-4" />
                           </Button>
@@ -453,7 +472,7 @@ const Profile = () => {
               )) : (
                 <div className="text-center py-8 text-white/70">
                   <div className="animate-bounce mb-4">
-                    <Music className="h-12 w-12 text-white/40 mx-auto" />
+                    <ListMusic className="h-12 w-12 text-white/40 mx-auto" />
                   </div>
                   <p>No playlists created yet.</p>
                 </div>
@@ -516,12 +535,27 @@ const PlaylistCard = ({ playlist, index }: { playlist: any; index: number }) => 
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <PlaylistViewer
+              playlistId={playlist.id}
+              playlistName={playlist.name}
+              isPublic={playlist.is_public}
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
+                >
+                  <ListMusic className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+              }
+            />
             {playlistWithSongs?.songs?.length > 0 && (
               <Button
                 onClick={handlePlayPlaylist}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
               >
                 <Play className="h-4 w-4" />
               </Button>

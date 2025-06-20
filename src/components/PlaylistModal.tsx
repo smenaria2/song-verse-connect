@@ -35,7 +35,7 @@ const PlaylistModal = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-purple-600 hover:bg-purple-700">
+        <Button className="bg-purple-600 hover:bg-purple-700 text-white border-0">
           <Plus className="h-4 w-4 mr-2" />
           Create Playlist
         </Button>
@@ -75,10 +75,10 @@ const PlaylistModal = () => {
             <Label htmlFor="public">Make playlist public</Label>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-white/20 text-white hover:bg-white/10">
               Cancel
             </Button>
-            <Button type="submit" disabled={createPlaylist.isPending}>
+            <Button type="submit" disabled={createPlaylist.isPending} className="bg-purple-600 hover:bg-purple-700 text-white">
               {createPlaylist.isPending ? "Creating..." : "Create"}
             </Button>
           </div>

@@ -18,15 +18,20 @@ const AddToPlaylistModal = ({ songId, songTitle, trigger }: AddToPlaylistModalPr
   const addSongToPlaylist = useAddSongToPlaylist();
 
   const handleAddToPlaylist = async (playlistId: string) => {
-    await addSongToPlaylist.mutateAsync({ playlistId, songId });
-    setOpen(false);
+    try {
+      await addSongToPlaylist.mutateAsync({ playlistId, songId });
+      setOpen(false);
+    } catch (error: any) {
+      // Error handling is done in the hook with toast
+      console.error('Failed to add song to playlist:', error);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+          <Button variant="outline" size="sm" className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white">
             <Plus className="h-4 w-4 mr-2" />
             Add to Playlist
           </Button>
@@ -48,7 +53,7 @@ const AddToPlaylistModal = ({ songId, songTitle, trigger }: AddToPlaylistModalPr
                 <Button
                   key={playlist.id}
                   variant="ghost"
-                  className="w-full justify-start text-white hover:bg-white/10"
+                  className="w-full justify-start text-white hover:bg-purple-600/20 hover:text-purple-300"
                   onClick={() => handleAddToPlaylist(playlist.id)}
                   disabled={addSongToPlaylist.isPending}
                 >
