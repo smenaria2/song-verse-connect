@@ -1,6 +1,7 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useSecurityValidation } from './useSecurityValidation';
 
 export interface Review {
@@ -72,21 +73,47 @@ export const useSubmitReview = () => {
         throw new Error('User not authenticated');
       }
 
-      const finalReviewData = {
-        song_id: reviewData.song_id,
-        rating: validatedData.rating,
-        review_text: validatedData.review_text,
-        reviewer_id: userData.user.id
-      };
-
-      const { data, error } = await supabase
+      // Check if user has already reviewed this song
+      const { data: existingReview } = await supabase
         .from('reviews')
-        .insert(finalReviewData)
-        .select()
+        .select('id')
+        .eq('song_id', reviewData.song_id)
+        .eq('reviewer_id', userData.user.id)
         .single();
-      
-      if (error) throw error;
-      return data;
+
+      if (existingReview) {
+        // Update existing review instead of creating new one
+        const { data, error } = await supabase
+          .from('reviews')
+          .update({
+            rating: validatedData.rating,
+            review_text: validatedData.review_text,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingReview.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new review
+        const finalReviewData = {
+          song_id: reviewData.song_id,
+          rating: validatedData.rating,
+          review_text: validatedData.review_text,
+          reviewer_id: userData.user.id
+        };
+
+        const { data, error } = await supabase
+          .from('reviews')
+          .insert(finalReviewData)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['reviews', variables.song_id] });
