@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,13 +43,12 @@ const Index = () => {
   const { user } = useAuth();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useSongs(searchTerm, genreFilter);
   const { data: stats, isLoading: isLoadingStats } = useSongsStats();
-  const { data: recentReviews, isLoading: isLoadingReviews } = useReviews();
+  const { data: recentReviews = [], isLoading: isLoadingReviews } = useReviews();
   const { playPause } = useAudioPlayer();
   const { toast } = useToast();
 
   // Get the 3 most recent songs for quick review
-  const recentSongs = data?.pages.flatMap(page => page)
-    .slice(0, 3) || [];
+  const recentSongs = data?.pages?.flatMap(page => page)?.slice(0, 3) || [];
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,7 +213,7 @@ const Index = () => {
         )}
 
         {/* Quick Review Form */}
-        {user && recentSongs.length > 0 && (
+        {user && recentSongs && recentSongs.length > 0 && (
           <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-left-4 card-responsive">
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold text-white mb-4">Quick Review</h2>
@@ -279,7 +279,7 @@ const Index = () => {
         )}
 
         {/* Recent Reviews Carousel */}
-        {recentReviews.length > 0 && (
+        {recentReviews && recentReviews.length > 0 && (
           <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-right-4 card-responsive">
             <CardContent className="p-6">
               <h2 className="text-2xl font-semibold text-white mb-4">Recent Reviews</h2>
@@ -291,7 +291,7 @@ const Index = () => {
                         <div className="flex flex-col h-full bg-black/20 rounded-md p-4 border border-white/10">
                           <div className="flex items-center space-x-4 mb-4">
                             <Avatar>
-                              <AvatarImage src={review.reviewer_avatar_url || ""} alt={review.reviewer_username} />
+                              <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
                               <AvatarFallback className={`text-sm text-white ${getRandomAvatarColor(review.reviewer_id)}`}>
                                 {getUserInitials(review.reviewer_username)}
                               </AvatarFallback>
@@ -305,8 +305,8 @@ const Index = () => {
                           </div>
                           <div className="mb-4">
                             <Link to={`/song/${review.song_id}`} className="text-white hover:text-purple-400">
-                              <h4 className="font-semibold">{review.song_title}</h4>
-                              <p className="text-white/70">{review.song_artist}</p>
+                              <h4 className="font-semibold">{review.song?.title || 'Unknown Song'}</h4>
+                              <p className="text-white/70">{review.song?.artist || 'Unknown Artist'}</p>
                             </Link>
                           </div>
                           <div className="flex items-center mb-4">
@@ -349,42 +349,44 @@ const Index = () => {
                 </Card>
               ))}
             </>
-          ) : data?.pages.map((page) =>
-            page.map((song) => (
-              <Card key={song.id} className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between space-x-4">
-                    <Link to={`/song/${song.id}`} className="flex-1">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors text-break">{song.title}</h3>
-                        <p className="text-white/70 text-break">{song.artist}</p>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
-                            {formatGenre(song.genre)}
-                          </Badge>
-                          <div className="flex items-center text-white/60">
-                            <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                            {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+          ) : data?.pages ? (
+            data.pages.map((page) =>
+              page.map((song) => (
+                <Card key={song.id} className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between space-x-4">
+                      <Link to={`/song/${song.id}`} className="flex-1">
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors text-break">{song.title}</h3>
+                          <p className="text-white/70 text-break">{song.artist}</p>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
+                              {formatGenre(song.genre)}
+                            </Badge>
+                            <div className="flex items-center text-white/60">
+                              <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                              {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+                            </div>
                           </div>
                         </div>
+                      </Link>
+                      <div className="flex items-center space-x-2">
+                        <AddToPlaylistModal songId={song.id} songTitle={song.title} />
+                        <Button
+                          onClick={() => handleSongPlay(song)}
+                          variant="outline"
+                          size="sm"
+                          className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </Link>
-                    <div className="flex items-center space-x-2">
-                      <AddToPlaylistModal songId={song.id} songTitle={song.title} />
-                      <Button
-                        onClick={() => handleSongPlay(song)}
-                        variant="outline"
-                        size="sm"
-                        className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+                  </CardContent>
+                </Card>
+              ))
+            )
+          ) : null}
         </div>
 
         {/* Load More Button */}
