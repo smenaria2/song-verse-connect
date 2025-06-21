@@ -12,7 +12,6 @@ export interface Review {
   reviewer_id: string;
   reviewer_username: string;
   reviewer_avatar?: string;
-  reviewer_avatar_url?: string;
   song_id: string;
   song_title?: string;
   song_artist?: string;
@@ -49,7 +48,6 @@ export const useReviews = (songId?: string) => {
         reviewer_id: review.reviewer_id,
         reviewer_username: (review.profiles as any)?.username || 'Anonymous',
         reviewer_avatar: (review.profiles as any)?.avatar_url,
-        reviewer_avatar_url: (review.profiles as any)?.avatar_url,
         song_id: review.song_id,
         song_title: (review.songs as any)?.title,
         song_artist: (review.songs as any)?.artist

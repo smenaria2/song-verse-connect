@@ -1,24 +1,19 @@
+
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Music, Star, Edit, Calendar, MapPin, Link as LinkIcon, Home, Upload, UserCircle, Loader2, Play, ListMusic, LogOut, Save, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Loader2, UserCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
-import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-import PlaylistModal from "@/components/PlaylistModal";
-import AddToPlaylistModal from "@/components/AddToPlaylistModal";
-import PlaylistViewer from "@/components/PlaylistViewer";
-import { usePlaylists, usePlaylistWithSongs } from "@/hooks/usePlaylists";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { usePlaylists } from "@/hooks/usePlaylists";
 import Navigation from "@/components/Navigation";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import ProfileStats from "@/components/profile/ProfileStats";
+import SubmittedSongs from "@/components/profile/SubmittedSongs";
+import UserReviews from "@/components/profile/UserReviews";
+import UserPlaylists from "@/components/profile/UserPlaylists";
 
 interface UserProfile {
   id: string;
@@ -63,20 +58,15 @@ interface UserReview {
 }
 
 const Profile = () => {
-  const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [editProfile, setEditProfile] = useState<Partial<UserProfile>>({});
   const [stats, setStats] = useState<UserStats | null>(null);
   const [submittedSongs, setSubmittedSongs] = useState<SubmittedSong[]>([]);
   const [userReviews, setUserReviews] = useState<UserReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { currentSong, isPlaying, playPause } = useAudioPlayer();
   const { data: playlists = [] } = usePlaylists();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!user) {
@@ -101,7 +91,6 @@ const Profile = () => {
 
       if (profileError) throw profileError;
       setProfile(profileData);
-      setEditProfile(profileData);
 
       // Fetch user stats
       const { data: statsData, error: statsError } = await supabase
@@ -166,66 +155,6 @@ const Profile = () => {
     }
   };
 
-  const handleSaveProfile = async () => {
-    if (!user) return;
-
-    try {
-      setSaving(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          username: editProfile.username,
-          bio: editProfile.bio,
-          website: editProfile.website,
-          location: editProfile.location
-        })
-        .eq('id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setProfile(data);
-      setIsEditing(false);
-      toast({
-        title: "Success!",
-        description: "Profile updated successfully!"
-      });
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSongPlay = (song: any) => {
-    playPause({
-      id: song.id,
-      youtubeId: song.youtube_id,
-      title: song.title,
-      artist: song.artist
-    });
-  };
-
-  const formatGenre = (genre: string) => {
-    return genre.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -254,299 +183,37 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 w-full max-w-full overflow-x-hidden">
       <Navigation />
 
-      <div className="container mx-auto px-4 py-12 pb-24 w-full max-w-full">
-        {/* Profile Header */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4 card-responsive">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
-              <div className="relative">
-                <Avatar className="w-32 h-32">
-                  <AvatarImage src={profile.avatar_url || ""} alt={profile.username} />
-                  <AvatarFallback className={`text-2xl text-white ${getRandomAvatarColor(profile.id)}`}>
-                    {getUserInitials(profile.username)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              
-              <div className="flex-1 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    {isEditing ? (
-                      <Input
-                        value={editProfile.username || ''}
-                        onChange={(e) => setEditProfile(prev => ({ ...prev, username: e.target.value }))}
-                        className="text-3xl font-bold bg-white/10 border-white/20 text-white mb-2"
-                        placeholder="Username"
-                      />
-                    ) : (
-                      <h2 className="text-3xl font-bold text-white">{profile.username}</h2>
-                    )}
-                    <p className="text-white/70 text-lg">{user?.email}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {isEditing ? (
-                      <>
-                        <Button
-                          onClick={handleSaveProfile}
-                          disabled={saving}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          {saving ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setIsEditing(false);
-                            setEditProfile(profile);
-                          }}
-                          variant="outline"
-                          className="border-red-500/50 bg-red-600/20 text-red-300 hover:bg-red-600/30 hover:text-white"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        onClick={() => setIsEditing(true)}
-                        variant="outline"
-                        className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={editProfile.bio || ''}
-                      onChange={(e) => setEditProfile(prev => ({ ...prev, bio: e.target.value }))}
-                      placeholder="Tell us about yourself..."
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input
-                        value={editProfile.location || ''}
-                        onChange={(e) => setEditProfile(prev => ({ ...prev, location: e.target.value }))}
-                        placeholder="Location"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                      <Input
-                        value={editProfile.website || ''}
-                        onChange={(e) => setEditProfile(prev => ({ ...prev, website: e.target.value }))}
-                        placeholder="Website URL"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {profile.bio && (
-                      <p className="text-white/80">{profile.bio}</p>
-                    )}
-                    
-                    <div className="flex flex-wrap gap-4 text-white/70">
-                      {profile.location && (
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {profile.location}
-                        </div>
-                      )}
-                      {profile.website && (
-                        <div className="flex items-center">
-                          <LinkIcon className="h-4 w-4 mr-1" />
-                          <a href={profile.website} className="text-purple-400 hover:underline" target="_blank" rel="noopener noreferrer">
-                            {profile.website}
-                          </a>
-                        </div>
-                      )}
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        Joined {formatDate(profile.created_at)}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            {/* Stats */}
-            {stats && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-8 border-t border-white/20">
-                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-                  <div className="text-2xl font-bold text-white">{stats.songs_submitted}</div>
-                  <div className="text-white/70 text-sm">Songs Submitted</div>
-                </div>
-                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
-                  <div className="text-2xl font-bold text-white">{stats.reviews_written}</div>
-                  <div className="text-white/70 text-sm">Reviews Written</div>
-                </div>
-                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '300ms' }}>
-                  <div className="text-2xl font-bold text-white">{stats.average_rating_given.toFixed(1)}</div>
-                  <div className="text-white/70 text-sm">Avg Rating Given</div>
-                </div>
-                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '400ms' }}>
-                  <div className="text-2xl font-bold text-white">{stats.followers_count}</div>
-                  <div className="text-white/70 text-sm">Followers</div>
-                </div>
-                <div className="text-center animate-in slide-in-from-bottom-4" style={{ animationDelay: '500ms' }}>
-                  <div className="text-2xl font-bold text-white">{stats.following_count}</div>
-                  <div className="text-white/70 text-sm">Following</div>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="container mx-auto px-4 py-8 md:py-12 pb-24 w-full max-w-full">
+        <ProfileHeader profile={profile} setProfile={setProfile} />
+        
+        <ProfileStats stats={stats} />
 
-        {/* Content Tabs */}
         <Tabs defaultValue="submitted" className="space-y-6">
-          <TabsList className="bg-white/10 border-white/20">
-            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600 text-white">
+          <TabsList className="bg-white/10 border-white/20 w-full overflow-x-auto">
+            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
               Submitted Songs
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
               My Reviews
             </TabsTrigger>
-            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
               My Playlists
             </TabsTrigger>
-            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 text-white">
+            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
               Following
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="submitted" className="space-y-4">
-            <div className="grid gap-4">
-              {submittedSongs.length > 0 ? submittedSongs.map((song, index) => (
-                <Card 
-                  key={song.id}
-                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-left-4"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <Link to={`/song/${song.id}`} className="flex-1">
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors">{song.title}</h3>
-                          <p className="text-white/70">{song.artist}</p>
-                          <div className="flex items-center space-x-4">
-                            <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
-                              {formatGenre(song.genre)}
-                            </Badge>
-                            <div className="flex items-center text-white/60">
-                              <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                              {song.average_rating.toFixed(1)} ({song.review_count} reviews)
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                      <div className="flex items-center space-x-2 ml-4">
-                        <AddToPlaylistModal songId={song.id} songTitle={song.title} />
-                        <Button
-                          onClick={() => handleSongPlay(song)}
-                          variant="outline"
-                          size="sm"
-                          className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="text-right text-white/60 ml-4">
-                        <p className="text-sm">Submitted</p>
-                        <p className="text-sm">{formatDate(song.created_at)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )) : (
-                <div className="text-center py-8 text-white/70">
-                  <div className="animate-bounce mb-4">
-                    <Music className="h-12 w-12 text-white/40 mx-auto" />
-                  </div>
-                  <p>No songs submitted yet.</p>
-                </div>
-              )}
-            </div>
+          <TabsContent value="submitted">
+            <SubmittedSongs songs={submittedSongs} />
           </TabsContent>
 
-          <TabsContent value="reviews" className="space-y-4">
-            <div className="grid gap-4">
-              {userReviews.length > 0 ? userReviews.map((review, index) => (
-                <Card 
-                  key={review.id} 
-                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-right-4"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="p-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-white">{review.song.title}</h3>
-                          <p className="text-white/70">{review.song.artist}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="flex items-center space-x-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.rating
-                                    ? "text-yellow-400 fill-current"
-                                    : "text-gray-400"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <Button
-                            onClick={() => handleSongPlay(review.song)}
-                            variant="outline"
-                            size="sm"
-                            className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {review.review_text && (
-                        <p className="text-white/80">{review.review_text}</p>
-                      )}
-                      <div className="flex items-center justify-between text-white/60 text-sm">
-                        <span>{formatDate(review.created_at)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )) : (
-                <div className="text-center py-8 text-white/70">
-                  <div className="animate-bounce mb-4">
-                    <Star className="h-12 w-12 text-white/40 mx-auto" />
-                  </div>
-                  <p>No reviews written yet.</p>
-                </div>
-              )}
-            </div>
+          <TabsContent value="reviews">
+            <UserReviews reviews={userReviews} />
           </TabsContent>
 
-          <TabsContent value="playlists" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-white">My Playlists</h3>
-              <PlaylistModal />
-            </div>
-            <div className="grid gap-4">
-              {playlists.length > 0 ? playlists.map((playlist, index) => (
-                <PlaylistCard key={playlist.id} playlist={playlist} index={index} />
-              )) : (
-                <div className="text-center py-8 text-white/70">
-                  <div className="animate-bounce mb-4">
-                    <ListMusic className="h-12 w-12 text-white/40 mx-auto" />
-                  </div>
-                  <p>No playlists created yet.</p>
-                </div>
-              )}
-            </div>
+          <TabsContent value="playlists">
+            <UserPlaylists playlists={playlists} />
           </TabsContent>
 
           <TabsContent value="following" className="space-y-4">
@@ -560,80 +227,6 @@ const Profile = () => {
         </Tabs>
       </div>
     </div>
-  );
-};
-
-// New component for playlist cards
-const PlaylistCard = ({ playlist, index }: { playlist: any; index: number }) => {
-  const { data: playlistWithSongs } = usePlaylistWithSongs(playlist.id);
-  const { playPause } = useAudioPlayer();
-
-  const handlePlayPlaylist = () => {
-    if (playlistWithSongs?.songs?.length) {
-      const firstSong = playlistWithSongs.songs[0];
-      playPause({
-        id: firstSong.id,
-        youtubeId: firstSong.youtube_id,
-        title: firstSong.title,
-        artist: firstSong.artist
-      });
-    }
-  };
-
-  return (
-    <Card 
-      className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-bottom-4"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white">{playlist.name}</h3>
-            {playlist.description && (
-              <p className="text-white/70">{playlist.description}</p>
-            )}
-            <div className="flex items-center space-x-4">
-              <span className="text-white/60 text-sm">
-                {playlistWithSongs?.songs?.length || 0} songs
-              </span>
-              {playlist.is_public && (
-                <Badge variant="secondary" className="bg-green-600/20 text-green-300">
-                  Public
-                </Badge>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <PlaylistViewer
-              trigger={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
-                >
-                  <ListMusic className="h-4 w-4 mr-2" />
-                  View
-                </Button>
-              }
-            />
-            {playlistWithSongs?.songs?.length > 0 && (
-              <Button
-                onClick={handlePlayPlaylist}
-                variant="outline"
-                size="sm"
-                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-              >
-                <Play className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <div className="text-right text-white/60">
-            <p className="text-sm">Created</p>
-            <p className="text-sm">{new Date(playlist.created_at).toLocaleDateString()}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
