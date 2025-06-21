@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useSecurityValidation } from './useSecurityValidation';
@@ -21,6 +22,13 @@ export interface Song {
   submitter_avatar?: string;
   average_rating: number;
   review_count: number;
+}
+
+export interface SongsStats {
+  total_songs: number;
+  total_artists: number;
+  total_reviews: number;
+  average_rating: number;
 }
 
 // Define allowed genre values to match database enum - updated to match actual DB schema
@@ -53,9 +61,9 @@ const genreMapping: { [key: string]: SongGenre } = {
 };
 
 export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['songs', searchTerm, selectedGenre],
-    queryFn: async () => {
+    queryFn: async ({ pageParam = 0 }) => {
       let query = supabase.from('songs_with_stats').select('*');
       
       if (searchTerm) {
@@ -70,6 +78,7 @@ export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
       }
       
       query = query.order('created_at', { ascending: false });
+      query = query.range(pageParam * 20, (pageParam + 1) * 20 - 1);
       
       const { data, error } = await query;
       
@@ -79,6 +88,50 @@ export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
       }
       
       return data as Song[];
+    },
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.length === 20 ? pages.length : undefined;
+    },
+    initialPageParam: 0
+  });
+};
+
+export const useSongsStats = () => {
+  return useQuery({
+    queryKey: ['songs-stats'],
+    queryFn: async () => {
+      // Get total songs
+      const { count: totalSongs } = await supabase
+        .from('songs')
+        .select('*', { count: 'exact', head: true });
+
+      // Get total artists (distinct)
+      const { data: artistsData } = await supabase
+        .from('songs')
+        .select('artist');
+      
+      const uniqueArtists = new Set(artistsData?.map(song => song.artist) || []).size;
+
+      // Get total reviews
+      const { count: totalReviews } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true });
+
+      // Get average rating
+      const { data: avgData } = await supabase
+        .from('reviews')
+        .select('rating');
+      
+      const avgRating = avgData?.length 
+        ? avgData.reduce((sum, review) => sum + review.rating, 0) / avgData.length
+        : 0;
+
+      return {
+        total_songs: totalSongs || 0,
+        total_artists: uniqueArtists,
+        total_reviews: totalReviews || 0,
+        average_rating: avgRating
+      } as SongsStats;
     }
   });
 };

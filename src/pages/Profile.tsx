@@ -605,9 +605,6 @@ const PlaylistCard = ({ playlist, index }: { playlist: any; index: number }) => 
           </div>
           <div className="flex items-center space-x-2">
             <PlaylistViewer
-              playlistId={playlist.id}
-              playlistName={playlist.name}
-              isPublic={playlist.is_public}
               trigger={
                 <Button
                   variant="outline"

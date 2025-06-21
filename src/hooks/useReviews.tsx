@@ -12,21 +12,29 @@ export interface Review {
   reviewer_id: string;
   reviewer_username: string;
   reviewer_avatar?: string;
+  reviewer_avatar_url?: string;
   song_id: string;
+  song_title?: string;
+  song_artist?: string;
 }
 
-export const useReviews = (songId: string) => {
+export const useReviews = (songId?: string) => {
   return useQuery({
     queryKey: ['reviews', songId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('reviews')
         .select(`
           *,
-          profiles!reviews_reviewer_id_fkey(username, avatar_url)
-        `)
-        .eq('song_id', songId)
-        .order('created_at', { ascending: false });
+          profiles!reviews_reviewer_id_fkey(username, avatar_url),
+          songs!reviews_song_id_fkey(title, artist)
+        `);
+
+      if (songId) {
+        query = query.eq('song_id', songId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching reviews:', error);
@@ -41,7 +49,10 @@ export const useReviews = (songId: string) => {
         reviewer_id: review.reviewer_id,
         reviewer_username: (review.profiles as any)?.username || 'Anonymous',
         reviewer_avatar: (review.profiles as any)?.avatar_url,
-        song_id: review.song_id
+        reviewer_avatar_url: (review.profiles as any)?.avatar_url,
+        song_id: review.song_id,
+        song_title: (review.songs as any)?.title,
+        song_artist: (review.songs as any)?.artist
       })) as Review[];
     }
   });
@@ -117,6 +128,7 @@ export const useSubmitReview = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['reviews', variables.song_id] });
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
       queryClient.invalidateQueries({ queryKey: ['songs'] });
       toast({
         title: "Success!",
