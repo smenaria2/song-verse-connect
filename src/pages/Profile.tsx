@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import PlaylistViewer from "@/components/PlaylistViewer";
 import { usePlaylists, usePlaylistWithSongs } from "@/hooks/usePlaylists";
 import { useIsMobile } from "@/hooks/use-mobile";
+import Navigation from "@/components/Navigation";
 
 interface UserProfile {
   id: string;
@@ -251,62 +251,12 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
-            </Link>
-            <nav className={`${isMobile ? 'hidden' : 'flex'} items-center space-x-6`}>
-              <Link to="/" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
-                <Home className="h-4 w-4" />
-                <span>Browse</span>
-              </Link>
-              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-purple-400 transition-colors">
-                <Upload className="h-4 w-4" />
-                <span>Submit Song</span>
-              </Link>
-              <PlaylistModal />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={signOut} 
-                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </nav>
-            {/* Mobile Navigation */}
-            {isMobile && (
-              <div className="flex items-center space-x-2">
-                <Link to="/" className="p-2 text-white hover:text-purple-400">
-                  <Home className="h-5 w-5" />
-                </Link>
-                <Link to="/submit" className="p-2 text-white hover:text-purple-400">
-                  <Upload className="h-5 w-5" />
-                </Link>
-                <PlaylistModal />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={signOut} 
-                  className="p-2 text-purple-300 hover:text-white hover:bg-purple-600/20"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 w-full max-w-full overflow-x-hidden">
+      <Navigation />
 
-      <div className="container mx-auto px-4 py-12 pb-24">
+      <div className="container mx-auto px-4 py-12 pb-24 w-full max-w-full">
         {/* Profile Header */}
-        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4">
+        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4 card-responsive">
           <CardContent className="p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-6 md:space-y-0 md:space-x-8">
               <div className="relative">

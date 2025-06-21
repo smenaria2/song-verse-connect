@@ -1,34 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Search, Music, Star, Play, Clock, User, Home, Upload, UserCircle, Loader2, Plus, LogOut } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import { Star, Search, Music, Play, Loader2, UserCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useSongs } from "@/hooks/useSongs";
+import { useSongs, useSongsStats } from "@/hooks/useSongs";
+import { useReviews } from "@/hooks/useReviews";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
-import { useSubmitReview, useReviews } from "@/hooks/useReviews";
+import { useToast } from "@/hooks/use-toast";
+import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
-import PlaylistViewer from "@/components/PlaylistViewer";
+import Navigation from "@/components/Navigation";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("All");
-  const [reviews, setReviews] = useState<{[key: string]: {rating: number, text: string}}>({});
-  const { user, signOut } = useAuth();
-  const { data: songs = [], isLoading } = useSongs(searchTerm, selectedGenre);
-  const { currentSong, isPlaying, playPause } = useAudioPlayer();
-  const submitReview = useSubmitReview();
+  const [genreFilter, setGenreFilter] = useState("All");
+  const [reviewText, setReviewText] = useState("");
+  const [rating, setRating] = useState(5);
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useSongs(searchTerm, genreFilter);
+  const { data: stats, isLoading: isLoadingStats } = useSongsStats();
+  const { data: recentReviews, isLoading: isLoadingReviews } = useReviews();
+  const { playPause } = useAudioPlayer();
+  const { toast } = useToast();
 
-  const genres = ["All", "Hindustani Classical", "Cover/Album", "Bollywood Film Music", "Bhangra", "Sufi/Qawwali", "Indian Folk", "Indie/Indian Pop", "Devotional", "Fusion", "Western"];
+  // Get the 3 most recent songs for quick review
+  const recentSongs = data?.pages.flatMap(page => page)
+    .slice(0, 3) || [];
 
-  const formatGenre = (genre: string) => {
-    return genre.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewText.trim()) {
+      toast({
+        title: "Error",
+        description: "Review text cannot be empty.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!selectedSongId) {
+      toast({
+        title: "Error",
+        description: "Please select a song to review.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          songId: selectedSongId,
+          rating: rating,
+          reviewText: reviewText,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Your review has been submitted."
+      });
+      setReviewText("");
+      setRating(5);
+      setSelectedSongId(null);
+    } catch (error: any) {
+      console.error('There was an error submitting the review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSongPlay = (song: any) => {
@@ -40,426 +116,293 @@ const Index = () => {
     });
   };
 
-  const handleReviewSubmit = async (songId: string) => {
-    const review = reviews[songId];
-    if (!review || review.rating === 0) return;
-
-    try {
-      await submitReview.mutateAsync({
-        song_id: songId,
-        rating: review.rating,
-        review_text: review.text || undefined
-      });
-      
-      // Clear the review form
-      setReviews(prev => {
-        const newReviews = { ...prev };
-        delete newReviews[songId];
-        return newReviews;
-      });
-    } catch (error: any) {
-      console.error('Failed to submit review:', error);
-      // The error handling is already done in the hook with toast
-    }
-  };
-
-  const handleRatingChange = (songId: string, rating: number) => {
-    setReviews(prev => ({
-      ...prev,
-      [songId]: { ...prev[songId], rating }
-    }));
-  };
-
-  const handleReviewTextChange = (songId: string, text: string) => {
-    setReviews(prev => ({
-      ...prev,
-      [songId]: { ...prev[songId], text, rating: prev[songId]?.rating || 0 }
-    }));
-  };
-
-  // Song review component for each song
-  const SongReviews = ({ songId }: { songId: string }) => {
-    const { data: songReviews = [] } = useReviews(songId);
-    const displayReviews = songReviews.slice(0, 3);
-
-    if (displayReviews.length === 0) {
-      return (
-        <div className="text-center py-2 text-white/50 text-xs">
-          No reviews yet
-        </div>
-      );
-    }
-
-    return (
-      <Carousel className="w-full max-w-xs mx-auto">
-        <CarouselContent>
-          {displayReviews.map((review) => (
-            <CarouselItem key={review.id}>
-              <Card className="bg-white/5 border-white/10 p-2">
-                <div className="text-xs">
-                  <div className="flex items-center gap-1 mb-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-3 w-3 ${
-                          i < review.rating
-                            ? "text-yellow-400 fill-current"
-                            : "text-gray-400"
-                        }`}
-                      />
-                    ))}
-                    <span className="text-white/70 ml-1">{review.reviewer_username}</span>
-                  </div>
-                  {review.review_text && (
-                    <p className="text-white/60 text-xs line-clamp-2">{review.review_text}</p>
-                  )}
-                </div>
-              </Card>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        {displayReviews.length > 1 && (
-          <>
-            <CarouselPrevious className="left-0 h-6 w-6 bg-white/10 border-white/20 text-white hover:bg-white/20" />
-            <CarouselNext className="right-0 h-6 w-6 bg-white/10 border-white/20 text-white hover:bg-white/20" />
-          </>
-        )}
-      </Carousel>
-    );
+  const formatGenre = (genre: string) => {
+    return genre.split('_').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="relative">
-                <Music className="h-8 w-8 text-orange-400" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
-              </div>
-              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
-            </div>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="flex items-center space-x-2 text-orange-400 hover:text-orange-300 transition-colors">
-                <Home className="h-4 w-4" />
-                <span>Browse</span>
-              </Link>
-              <Link to="/submit" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <Upload className="h-4 w-4" />
-                <span>Submit Song</span>
-              </Link>
-              {user && <PlaylistViewer />}
-              <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <UserCircle className="h-4 w-4" />
-                <span>Profile</span>
-              </Link>
-            </nav>
-            <div className="flex items-center space-x-2">
-              {user ? (
-                <>
-                  <span className="text-white text-sm">Welcome, {user.email}</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={signOut} 
-                    className="border-orange-500/50 bg-orange-600/20 text-orange-300 hover:bg-orange-600/30 hover:text-white"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/auth">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-white border-white/30 hover:bg-orange-600/20 hover:border-orange-400 hover:text-orange-400"
-                    >
-                      Login
-                    </Button>
-                  </Link>
-                  <Link to="/auth">
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Navigation */}
-      {user && (
-        <div className="md:hidden bg-black/30 backdrop-blur-md border-b border-white/10">
-          <div className="container mx-auto px-4 py-2">
-            <div className="flex justify-around">
-              <Link to="/" className="flex flex-col items-center space-y-1 text-orange-400 hover:text-orange-300 transition-colors">
-                <Home className="h-5 w-5" />
-                <span className="text-xs">Browse</span>
-              </Link>
-              <Link to="/submit" className="flex flex-col items-center space-y-1 text-white hover:text-orange-400 transition-colors">
-                <Upload className="h-5 w-5" />
-                <span className="text-xs">Submit</span>
-              </Link>
-              <PlaylistViewer 
-                trigger={
-                  <div className="flex flex-col items-center space-y-1 text-white hover:text-orange-400 transition-colors cursor-pointer">
-                    <Music className="h-5 w-5" />
-                    <span className="text-xs">Playlists</span>
-                  </div>
-                }
-              />
-              <Link to="/profile" className="flex flex-col items-center space-y-1 text-white hover:text-orange-400 transition-colors">
-                <UserCircle className="h-5 w-5" />
-                <span className="text-xs">Profile</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12 pb-24">
-        <div className="text-center mb-12">
-          <div className="mb-6 animate-in fade-in-0 duration-1000">
-            <div className="relative inline-block">
-              <Music className="h-20 w-20 text-orange-400 mx-auto" />
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-500 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-          <h2 className="text-5xl font-bold text-white mb-4 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
-            Discover & Review <span className="text-orange-400">Sacred Music</span>
-          </h2>
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto animate-in slide-in-from-bottom-4 duration-1000 delay-400">
-            Share your favorite YouTube songs, discover new music, and connect with fellow music enthusiasts through reviews and ratings.
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 w-full max-w-full overflow-x-hidden">
+      <Navigation />
+      
+      <div className="container mx-auto px-4 py-8 pb-24 w-full max-w-full">
+        {/* Hero Section */}
+        <div className="text-center mb-12 animate-in slide-in-from-top-6">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 text-break">
+            Discover Sacred Music
+          </h1>
+          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto text-break">
+            Share, review, and explore the most meaningful songs in your spiritual journey
           </p>
-          
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto mb-8 animate-in slide-in-from-bottom-4 duration-1000 delay-600">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <Input
-                type="text"
-                placeholder="Search for songs, artists, or genres..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-3 text-lg bg-white/10 border-white/20 text-white placeholder-white/60 focus:bg-white/20 transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Genre Filter */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in slide-in-from-bottom-4 duration-1000 delay-800">
-            {genres.map((genre) => (
-              <Button
-                key={genre}
-                variant={selectedGenre === genre ? "default" : "secondary"}
-                size="sm"
-                onClick={() => setSelectedGenre(genre)}
-                className={`${
-                  selectedGenre === genre
-                    ? "bg-orange-600 hover:bg-orange-700 text-white"
-                    : "bg-white/20 text-white hover:bg-white/30 border-0"
-                } transition-all rounded-full px-4 py-2`}
-              >
-                {genre}
-              </Button>
-            ))}
-          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-left-4 duration-1000 delay-1000">
-            <CardContent className="p-6 text-center">
-              <Music className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{songs.length}</h3>
-              <p className="text-white/70">Songs Available</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-bottom-4 duration-1000 delay-1200">
-            <CardContent className="p-6 text-center">
-              <User className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">
-                {user ? "Welcome!" : "Join Now"}
-              </h3>
-              <p className="text-white/70">
-                {user ? "Start Exploring" : "Create Account"}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300 animate-in slide-in-from-right-4 duration-1000 delay-1400">
-            <CardContent className="p-6 text-center">
-              <Star className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">
-                {songs.reduce((sum, song) => sum + song.review_count, 0)}
-              </h3>
-              <p className="text-white/70">Total Reviews</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Songs List */}
-        <section>
-          <h3 className="text-3xl font-bold text-white mb-8 text-center">
-            {songs.length > 0 ? "Available Songs" : "No Songs Found"}
-          </h3>
-          
-          {isLoading ? (
-            <div className="text-center py-8">
-              <Loader2 className="h-12 w-12 text-orange-400 mx-auto animate-spin" />
-              <p className="text-white/70 mt-4">Loading songs...</p>
+        {/* Search and Filter Section */}
+        <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4 card-responsive">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="search" className="text-white/80 block text-sm font-medium mb-2">
+                  Search
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    type="search"
+                    id="search"
+                    placeholder="Search for songs, artists..."
+                    className="pl-10 bg-white/10 border-white/20 text-white placeholder-white/60"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="genre" className="text-white/80 block text-sm font-medium mb-2">
+                  Genre
+                </Label>
+                <Select onValueChange={setGenreFilter}>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white placeholder-white/60">
+                    <SelectValue placeholder="All Genres" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Genres</SelectItem>
+                    <SelectItem value="chant">Chant</SelectItem>
+                    <SelectItem value="gospel">Gospel</SelectItem>
+                    <SelectItem value="contemporary_christian">Contemporary Christian</SelectItem>
+                    <SelectItem value="sacred_classical">Sacred Classical</SelectItem>
+                    <SelectItem value="hindu_bhajan">Hindu Bhajan</SelectItem>
+                    <SelectItem value="qawwali">Qawwali</SelectItem>
+                    <SelectItem value="spiritual">Spiritual</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          ) : songs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {songs.map((song, index) => (
-                <Card 
-                  key={song.id} 
-                  className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20 transition-all duration-300 group animate-in slide-in-from-bottom-4"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CardContent className="p-4">
-                    <div className="relative mb-3 overflow-hidden rounded-lg">
-                      <img
-                        src={song.thumbnail_url || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop"}
-                        alt={song.title}
-                        className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+          </CardContent>
+        </Card>
+
+        {/* Stats Section */}
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center p-5 animate-in slide-in-from-bottom-4">
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{stats.total_songs}</div>
+                <div className="text-white/70">Total Songs</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center p-5 animate-in slide-in-from-bottom-4 delay-100">
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{stats.total_artists}</div>
+                <div className="text-white/70">Total Artists</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center p-5 animate-in slide-in-from-bottom-4 delay-200">
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{stats.total_reviews}</div>
+                <div className="text-white/70">Total Reviews</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-white/10 border-white/20 backdrop-blur-md text-center p-5 animate-in slide-in-from-bottom-4 delay-300">
+              <CardContent>
+                <div className="text-3xl font-bold text-white">{stats.average_rating.toFixed(1)}</div>
+                <div className="text-white/70">Average Rating</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Quick Review Form */}
+        {user && recentSongs.length > 0 && (
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-left-4 card-responsive">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-semibold text-white mb-4">Quick Review</h2>
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div>
+                  <Label htmlFor="song" className="text-white/80 block text-sm font-medium mb-2">
+                    Select a Song
+                  </Label>
+                  <Select onValueChange={(value) => setSelectedSongId(value)}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white placeholder-white/60 w-full">
+                      <SelectValue placeholder="Choose a song to review" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {recentSongs.map((song) => (
+                        <SelectItem key={song.id} value={song.id}>
+                          {song.title} - {song.artist}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="rating" className="text-white/80 block text-sm font-medium mb-2">
+                    Rating
+                  </Label>
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-6 w-6 ${i < rating ? "text-yellow-400 fill-current" : "text-gray-400"
+                          } cursor-pointer`}
+                        onClick={() => setRating(i + 1)}
                       />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <button
-                          onClick={() => handleSongPlay(song)}
-                          className="bg-orange-600 hover:bg-orange-700 text-white p-3 rounded-full transition-colors"
-                        >
-                          <Play className="h-6 w-6" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div>
-                        <Link to={`/song/${song.id}`}>
-                          <h4 className="text-lg font-semibold text-white truncate hover:text-orange-400 transition-colors">{song.title}</h4>
-                        </Link>
-                        <p className="text-white/70 text-sm">{song.artist}</p>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="bg-orange-600/20 text-orange-300 border-orange-600/30 text-xs">
-                          {formatGenre(song.genre)}
-                        </Badge>
-                        {song.duration && (
-                          <div className="flex items-center text-white/60 text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {song.duration}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3 w-3 ${
-                                i < Math.floor(song.average_rating)
-                                  ? "text-yellow-400 fill-current"
-                                  : "text-gray-400"
-                              }`}
-                            />
-                          ))}
-                          <span className="text-white/70 text-xs ml-1">
-                            {song.average_rating.toFixed(1)} ({song.review_count})
-                          </span>
-                        </div>
-                        {user && (
-                          <AddToPlaylistModal 
-                            songId={song.id} 
-                            songTitle={song.title}
-                            trigger={
-                              <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 p-1">
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            }
-                          />
-                        )}
-                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="review" className="text-white/80 block text-sm font-medium mb-2">
+                    Review
+                  </Label>
+                  <Textarea
+                    id="review"
+                    rows={4}
+                    className="bg-white/10 border-white/20 text-white placeholder-white/60 w-full"
+                    placeholder="Share your thoughts on this song..."
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Review"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
-                      <p className="text-white/60 text-xs">
-                        by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
-                      </p>
-
-                      {/* Reviews Section */}
-                      <div className="mt-3">
-                        <SongReviews songId={song.id} />
-                      </div>
-
-                      {/* Compact Quick Review Form */}
-                      {user && (
-                        <div className="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-white/80 text-xs font-medium">Quick Review</span>
-                            <div className="flex items-center space-x-1">
-                              {[1, 2, 3, 4, 5].map((rating) => (
-                                <button
-                                  key={rating}
-                                  onClick={() => handleRatingChange(song.id, rating)}
-                                  className="hover:scale-110 transition-transform"
-                                >
-                                  <Star
-                                    className={`h-3 w-3 ${
-                                      rating <= (reviews[song.id]?.rating || 0)
-                                        ? "text-yellow-400 fill-current"
-                                        : "text-gray-400 hover:text-yellow-300"
-                                    }`}
-                                  />
-                                </button>
-                              ))}
+        {/* Recent Reviews Carousel */}
+        {recentReviews.length > 0 && (
+          <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-right-4 card-responsive">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-semibold text-white mb-4">Recent Reviews</h2>
+              <Carousel className="w-full">
+                <CarouselContent className="-ml-1 pl-1">
+                  {recentReviews.map((review) => (
+                    <CarouselItem key={review.id} className="md:basis-1/2 lg:basis-1/3">
+                      <div className="p-4">
+                        <div className="flex flex-col h-full bg-black/20 rounded-md p-4 border border-white/10">
+                          <div className="flex items-center space-x-4 mb-4">
+                            <Avatar>
+                              <AvatarImage src={review.reviewer_avatar_url || ""} alt={review.reviewer_username} />
+                              <AvatarFallback className={`text-sm text-white ${getRandomAvatarColor(review.reviewer_id)}`}>
+                                {getUserInitials(review.reviewer_username)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white">{review.reviewer_username}</h3>
+                              <p className="text-white/60 text-sm">
+                                {new Date(review.created_at).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
-                          <Textarea
-                            placeholder="Write your review..."
-                            value={reviews[song.id]?.text || ''}
-                            onChange={(e) => handleReviewTextChange(song.id, e.target.value)}
-                            className="w-full h-12 bg-white/10 border-white/20 text-white text-xs placeholder-white/50 resize-none mb-2"
-                          />
-                          <Button
-                            onClick={() => handleReviewSubmit(song.id)}
-                            disabled={!reviews[song.id]?.rating || submitReview.isPending}
-                            size="sm"
-                            className="bg-orange-600 hover:bg-orange-700 text-white text-xs h-6 px-2"
-                          >
-                            {submitReview.isPending ? "Submitting..." : "Submit"}
-                          </Button>
+                          <div className="mb-4">
+                            <Link to={`/song/${review.song_id}`} className="text-white hover:text-purple-400">
+                              <h4 className="font-semibold">{review.song_title}</h4>
+                              <p className="text-white/70">{review.song_artist}</p>
+                            </Link>
+                          </div>
+                          <div className="flex items-center mb-4">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-5 w-5 ${i < review.rating ? "text-yellow-400 fill-current" : "text-gray-400"
+                                  }`}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-white/80">{review.review_text}</p>
                         </div>
-                      )}
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-4" />
+                <CarouselNext className="right-4" />
+              </Carousel>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Songs Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+          {isLoading ? (
+            <>
+              {[...Array(9)].map((_, i) => (
+                <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-md animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between space-x-4">
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                      </div>
+                      <div className="h-8 w-8 bg-gray-500 rounded-full"></div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Music className="h-16 w-16 text-white/40 mx-auto mb-4" />
-              <p className="text-white/70 text-lg">No songs found. Be the first to submit one!</p>
-            </div>
+            </>
+          ) : data?.pages.map((page) =>
+            page.map((song) => (
+              <Card key={song.id} className="bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between space-x-4">
+                    <Link to={`/song/${song.id}`} className="flex-1">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-white hover:text-purple-400 transition-colors text-break">{song.title}</h3>
+                        <p className="text-white/70 text-break">{song.artist}</p>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
+                            {formatGenre(song.genre)}
+                          </Badge>
+                          <div className="flex items-center text-white/60">
+                            <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                            {song.average_rating.toFixed(1)} ({song.review_count} reviews)
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="flex items-center space-x-2">
+                      <AddToPlaylistModal songId={song.id} songTitle={song.title} />
+                      <Button
+                        onClick={() => handleSongPlay(song)}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
           )}
-        </section>
-
-        {/* Call to Action */}
-        <div className="text-center mt-16">
-          <Link to={user ? "/submit" : "/auth"}>
-            <Button size="lg" className="bg-orange-600 hover:bg-orange-700 text-lg px-8 py-3">
-              <Music className="h-5 w-5 mr-2" />
-              {user ? "Submit Your First Song" : "Join to Submit Songs"}
-            </Button>
-          </Link>
         </div>
-      </section>
+
+        {/* Load More Button */}
+        {hasNextPage && (
+          <div className="text-center mt-8">
+            <Button onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+              {isFetchingNextPage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading More...
+                </>
+              ) : (
+                "Load More"
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
