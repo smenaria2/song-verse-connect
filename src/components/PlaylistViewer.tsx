@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,13 +29,16 @@ const PlaylistViewer = ({ trigger }: PlaylistViewerProps) => {
   const [newPlaylistIsPublic, setNewPlaylistIsPublic] = useState(false);
   
   const { data: playlists = [] } = usePlaylists();
-  const { data: songs = [] } = useSongs(searchTerm, "All");
+  const songsQuery = useSongs(searchTerm, "All");
   const { data: currentPlaylist } = usePlaylistWithSongs(selectedPlaylist || "");
   const createPlaylist = useCreatePlaylist();
   const removeSongFromPlaylist = useRemoveSongFromPlaylist();
   const addSongToPlaylist = useAddSongToPlaylist();
   const { playPause } = useAudioPlayer();
   const { toast } = useToast();
+
+  // Extract all songs from the infinite query pages
+  const allSongs = songsQuery.data?.pages?.flat() || [];
 
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +103,7 @@ const PlaylistViewer = ({ trigger }: PlaylistViewerProps) => {
     }
   };
 
-  const filteredSongs = songs.filter(song => 
+  const filteredSongs = allSongs.filter(song => 
     !currentPlaylist?.songs.some(playlistSong => playlistSong.id === song.id)
   );
 
