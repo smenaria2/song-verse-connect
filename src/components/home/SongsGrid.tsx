@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Song } from "@/hooks/useSongs";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
+import SongReviewSection from "@/components/home/SongReviewSection";
 import { InfiniteData } from "@tanstack/react-query";
 
 interface SongsGridProps {
@@ -116,6 +117,9 @@ const SongsGrid = ({ data, isLoading, fetchNextPage, hasNextPage, isFetchingNext
                         Play
                       </Button>
                     </div>
+
+                    {/* Review Section */}
+                    <SongReviewSection song={song} />
                   </div>
                 </CardContent>
               </Card>

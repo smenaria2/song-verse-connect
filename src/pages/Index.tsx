@@ -8,7 +8,6 @@ import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/home/HeroSection";
 import SearchAndFilter from "@/components/home/SearchAndFilter";
 import StatsSection from "@/components/home/StatsSection";
-import QuickReviewForm from "@/components/home/QuickReviewForm";
 import RecentReviewsCarousel from "@/components/home/RecentReviewsCarousel";
 import SongsGrid from "@/components/home/SongsGrid";
 
@@ -19,9 +18,6 @@ const Index = () => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useSongs(searchTerm, genreFilter);
   const { data: stats, isLoading: isLoadingStats } = useSongsStats();
   const { data: recentReviews = [], isLoading: isLoadingReviews } = useReviews();
-
-  // Get the 3 most recent songs for quick review
-  const recentSongs = data?.pages?.flatMap(page => page)?.slice(0, 3) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 w-full max-w-full overflow-x-hidden">
@@ -38,10 +34,6 @@ const Index = () => {
         />
 
         <StatsSection stats={stats} />
-
-        {user && recentSongs && recentSongs.length > 0 && (
-          <QuickReviewForm recentSongs={recentSongs} />
-        )}
 
         <RecentReviewsCarousel recentReviews={recentReviews} />
 
