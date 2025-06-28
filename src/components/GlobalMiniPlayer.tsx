@@ -24,6 +24,14 @@ const GlobalMiniPlayer = () => {
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerReadyRef = useRef(false);
+  const apiLoadedRef = useRef(false);
+
+  // Load YouTube API on component mount
+  useEffect(() => {
+    if (!apiLoadedRef.current && !window.YT) {
+      loadYouTubeAPI();
+    }
+  }, []);
 
   useEffect(() => {
     if (!currentSong) {
@@ -35,27 +43,43 @@ const GlobalMiniPlayer = () => {
     setIsLoading(true);
     playerReadyRef.current = false;
 
-    // Load YouTube IFrame API if not already loaded
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      }
-
+    if (window.YT && window.YT.Player) {
+      initializePlayer();
+    } else {
+      // Wait for API to load
       window.onYouTubeIframeAPIReady = () => {
         console.log('YouTube API ready');
         initializePlayer();
       };
-    } else {
-      initializePlayer();
     }
 
     return () => {
       cleanupPlayer();
     };
   }, [currentSong?.youtubeId]);
+
+  const loadYouTubeAPI = () => {
+    if (apiLoadedRef.current) return;
+    
+    apiLoadedRef.current = true;
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    if (firstScriptTag && firstScriptTag.parentNode) {
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    } else {
+      document.head.appendChild(tag);
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+      console.log('YouTube API loaded and ready');
+      if (currentSong) {
+        initializePlayer();
+      }
+    };
+  };
 
   const cleanupPlayer = () => {
     console.log('Cleaning up player');
@@ -90,18 +114,27 @@ const GlobalMiniPlayer = () => {
     }
 
     // Cleanup existing player first
-    cleanupPlayer();
+    if (playerRef.current) {
+      try {
+        playerRef.current.destroy();
+      } catch (error) {
+        console.log('Error destroying previous player:', error);
+      }
+    }
 
     console.log('Initializing YouTube player for:', currentSong.youtubeId);
 
     // Create a hidden div for the player
-    const playerContainer = document.createElement('div');
-    playerContainer.id = `youtube-player-${Date.now()}`;
-    playerContainer.style.display = 'none';
-    document.body.appendChild(playerContainer);
+    let playerContainer = document.getElementById('youtube-player-container');
+    if (!playerContainer) {
+      playerContainer = document.createElement('div');
+      playerContainer.id = 'youtube-player-container';
+      playerContainer.style.display = 'none';
+      document.body.appendChild(playerContainer);
+    }
 
     try {
-      playerRef.current = new window.YT.Player(playerContainer.id, {
+      playerRef.current = new window.YT.Player('youtube-player-container', {
         height: '0',
         width: '0',
         videoId: currentSong.youtubeId,
@@ -112,6 +145,7 @@ const GlobalMiniPlayer = () => {
           fs: 0,
           modestbranding: 1,
           playsinline: 1,
+          rel: 0,
           origin: window.location.origin,
         },
         events: {
@@ -136,8 +170,11 @@ const GlobalMiniPlayer = () => {
       setDuration(videoDuration);
       event.target.setVolume(volume[0]);
       
+      // Auto-play if the audio player state indicates it should be playing
       if (isPlaying) {
-        event.target.playVideo();
+        setTimeout(() => {
+          event.target.playVideo();
+        }, 100);
       }
     } catch (error) {
       console.error('Player ready error:', error);
@@ -186,7 +223,7 @@ const GlobalMiniPlayer = () => {
           console.log('Time update error:', error);
         }
       }
-    }, 500); // Update more frequently for smoother progress
+    }, 500);
   };
 
   const stopTimeUpdate = () => {
@@ -247,18 +284,13 @@ const GlobalMiniPlayer = () => {
     }
   };
 
-  const handleSeekStart = () => {
-    setIsDragging(true);
-  };
-
   const handleSeekChange = (newTime: number[]) => {
-    if (isDragging) {
-      setDragTime(newTime[0]);
-      setCurrentTime(newTime[0]);
-    }
+    setIsDragging(true);
+    setDragTime(newTime[0]);
+    setCurrentTime(newTime[0]);
   };
 
-  const handleSeekEnd = (newTime: number[]) => {
+  const handleSeekCommit = (newTime: number[]) => {
     if (!playerRef.current || !playerReadyRef.current) {
       setIsDragging(false);
       return;
@@ -273,22 +305,6 @@ const GlobalMiniPlayer = () => {
     } catch (error) {
       console.error('Seek error:', error);
       setIsDragging(false);
-    }
-  };
-
-  const handleProgressClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || !playerReadyRef.current || duration === 0) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    const newTime = percentage * duration;
-
-    try {
-      playerRef.current.seekTo(newTime, true);
-      setCurrentTime(newTime);
-    } catch (error) {
-      console.error('Progress click error:', error);
     }
   };
 
@@ -322,7 +338,6 @@ const GlobalMiniPlayer = () => {
   if (!currentSong) return null;
 
   const displayTime = isDragging ? dragTime : currentTime;
-  const progressPercentage = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/20 z-50 shadow-2xl">
@@ -375,19 +390,18 @@ const GlobalMiniPlayer = () => {
             {duration > 0 && !isLoading && (
               <div className="space-y-2">
                 <div className="flex items-center space-x-2 text-xs text-white/70">
-                  <span className="w-10 text-right">{formatTime(displayTime)}</span>
+                  <span className="w-10 text-right font-mono">{formatTime(displayTime)}</span>
                   <div className="flex-1">
                     <Slider
                       value={[displayTime]}
                       onValueChange={handleSeekChange}
-                      onPointerDown={handleSeekStart}
-                      onPointerUp={(e) => handleSeekEnd([displayTime])}
+                      onValueCommit={handleSeekCommit}
                       max={duration}
-                      step={1}
+                      step={0.1}
                       className="w-full cursor-pointer"
                     />
                   </div>
-                  <span className="w-10">{formatTime(duration)}</span>
+                  <span className="w-10 font-mono">{formatTime(duration)}</span>
                 </div>
               </div>
             )}
@@ -511,8 +525,7 @@ const GlobalMiniPlayer = () => {
                   <Slider
                     value={[displayTime]}
                     onValueChange={handleSeekChange}
-                    onPointerDown={handleSeekStart}
-                    onPointerUp={(e) => handleSeekEnd([displayTime])}
+                    onValueCommit={handleSeekCommit}
                     max={duration}
                     step={0.1}
                     className="w-full cursor-pointer"
