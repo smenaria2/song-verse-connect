@@ -1,10 +1,11 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePlaylists, useAddSongToPlaylist } from "@/hooks/usePlaylists";
-import { Plus, ListMusic } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, ListMusic, Check } from "lucide-react";
 
 interface AddToPlaylistModalProps {
   songId: string;
@@ -17,6 +18,21 @@ const AddToPlaylistModal = ({ songId, songTitle, trigger }: AddToPlaylistModalPr
   const { data: playlists = [] } = usePlaylists();
   const addSongToPlaylist = useAddSongToPlaylist();
 
+  // Fetch playlists that already contain this song
+  const { data: playlistsWithSong = [] } = useQuery({
+    queryKey: ['playlist-songs', songId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('playlist_songs')
+        .select('playlist_id')
+        .eq('song_id', songId);
+      
+      if (error) throw error;
+      return data.map(item => item.playlist_id);
+    },
+    enabled: open && !!songId,
+  });
+
   const handleAddToPlaylist = async (playlistId: string) => {
     try {
       await addSongToPlaylist.mutateAsync({ playlistId, songId });
@@ -25,6 +41,10 @@ const AddToPlaylistModal = ({ songId, songTitle, trigger }: AddToPlaylistModalPr
       // Error handling is done in the hook with toast
       console.error('Failed to add song to playlist:', error);
     }
+  };
+
+  const isSongInPlaylist = (playlistId: string) => {
+    return playlistsWithSong.includes(playlistId);
   };
 
   return (
@@ -49,19 +69,32 @@ const AddToPlaylistModal = ({ songId, songTitle, trigger }: AddToPlaylistModalPr
                 <p>No playlists found. Create one first!</p>
               </div>
             ) : (
-              playlists.map((playlist) => (
-                <Button
-                  key={playlist.id}
-                  variant="ghost"
-                  className="w-full justify-start text-white hover:bg-purple-600/20 hover:text-purple-300"
-                  onClick={() => handleAddToPlaylist(playlist.id)}
-                  disabled={addSongToPlaylist.isPending}
-                >
-                  <ListMusic className="h-4 w-4 mr-2" />
-                  {playlist.name}
-                  {playlist.is_public && <span className="ml-2 text-xs text-purple-400">(Public)</span>}
-                </Button>
-              ))
+              playlists.map((playlist) => {
+                const isAlreadyAdded = isSongInPlaylist(playlist.id);
+                
+                return (
+                  <Button
+                    key={playlist.id}
+                    variant="ghost"
+                    className={`w-full justify-start text-white ${
+                      isAlreadyAdded 
+                        ? 'opacity-50 cursor-not-allowed bg-green-600/20 text-green-300' 
+                        : 'hover:bg-purple-600/20 hover:text-purple-300'
+                    }`}
+                    onClick={() => !isAlreadyAdded && handleAddToPlaylist(playlist.id)}
+                    disabled={addSongToPlaylist.isPending || isAlreadyAdded}
+                  >
+                    {isAlreadyAdded ? (
+                      <Check className="h-4 w-4 mr-2" />
+                    ) : (
+                      <ListMusic className="h-4 w-4 mr-2" />
+                    )}
+                    {playlist.name}
+                    {playlist.is_public && <span className="ml-2 text-xs text-purple-400">(Public)</span>}
+                    {isAlreadyAdded && <span className="ml-2 text-xs text-green-400">(Already Added)</span>}
+                  </Button>
+                );
+              })
             )}
           </div>
         </ScrollArea>
