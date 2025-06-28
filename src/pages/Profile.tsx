@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -189,20 +188,34 @@ const Profile = () => {
         <ProfileStats stats={stats} />
 
         <Tabs defaultValue="submitted" className="space-y-6">
-          <TabsList className="bg-white/10 border-white/20 w-full overflow-x-auto">
-            <TabsTrigger value="submitted" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
-              Submitted Songs
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
-              My Reviews
-            </TabsTrigger>
-            <TabsTrigger value="playlists" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
-              My Playlists
-            </TabsTrigger>
-            <TabsTrigger value="following" className="data-[state=active]:bg-purple-600 text-white whitespace-nowrap">
-              Following
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center">
+            <TabsList className="bg-white/10 border border-white/20 backdrop-blur-md rounded-xl p-1 grid grid-cols-4 w-full max-w-2xl">
+              <TabsTrigger 
+                value="submitted" 
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white transition-all duration-200 rounded-lg px-4 py-2 text-sm font-medium"
+              >
+                Songs
+              </TabsTrigger>
+              <TabsTrigger 
+                value="reviews" 
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white transition-all duration-200 rounded-lg px-4 py-2 text-sm font-medium"
+              >
+                Reviews
+              </TabsTrigger>
+              <TabsTrigger 
+                value="playlists" 
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white transition-all duration-200 rounded-lg px-4 py-2 text-sm font-medium"
+              >
+                Playlists
+              </TabsTrigger>
+              <TabsTrigger 
+                value="following" 
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white transition-all duration-200 rounded-lg px-4 py-2 text-sm font-medium"
+              >
+                Following
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="submitted">
             <SubmittedSongs songs={submittedSongs} />
