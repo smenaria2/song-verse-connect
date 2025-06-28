@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,8 +32,6 @@ const Index = () => {
           setGenreFilter={setGenreFilter}
         />
 
-        <StatsSection stats={stats} />
-
         <RecentReviewsCarousel recentReviews={recentReviews} />
 
         <SongsGrid 
@@ -44,6 +41,8 @@ const Index = () => {
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
         />
+
+        <StatsSection stats={stats} />
       </div>
     </div>
   );
