@@ -16,14 +16,14 @@ const Navigation = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Unified button styling for ALL navigation buttons
+  const baseButtonClasses = "flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm border-0 bg-transparent";
+  const activeButtonClasses = "bg-purple-600/30 text-white shadow-sm";
+
   const NavLink = ({ to, children, icon: Icon }: { to: string; children: React.ReactNode; icon: any }) => (
     <Link
       to={to}
-      className={`flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm ${
-        isActive(to)
-          ? 'bg-purple-600 text-white shadow-md'
-          : 'text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm'
-      }`}
+      className={`${baseButtonClasses} ${isActive(to) ? activeButtonClasses : ''}`}
       onClick={() => setMobileMenuOpen(false)}
     >
       <Icon className="h-4 w-4 flex-shrink-0" />
@@ -38,8 +38,7 @@ const Navigation = () => {
   }) => (
     <Button
       onClick={onClick}
-      variant="ghost"
-      className="flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm"
+      className={baseButtonClasses}
     >
       <Icon className="h-4 w-4 flex-shrink-0" />
       <span className="whitespace-nowrap">{children}</span>
@@ -63,12 +62,10 @@ const Navigation = () => {
               <NavLink to="/submit" icon={Upload}>Submit Song</NavLink>
               <PlaylistViewer
                 trigger={
-                  <NavButton
-                    onClick={() => {}}
-                    icon={Music}
-                  >
-                    My Playlists
-                  </NavButton>
+                  <div className={baseButtonClasses}>
+                    <Music className="h-4 w-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap">My Playlists</span>
+                  </div>
                 }
               />
               <NavLink to="/profile" icon={User}>Profile</NavLink>
@@ -84,10 +81,8 @@ const Navigation = () => {
           {/* Mobile Menu Button */}
           {isMobile && (
             <Button
-              variant="ghost"
-              size="sm"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white hover:bg-purple-600/20 p-2 h-10 w-10 rounded-lg transition-all duration-200"
+              className="text-white hover:bg-purple-600/20 p-2 h-10 w-10 rounded-lg transition-all duration-200 border-0 bg-transparent"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
@@ -103,12 +98,10 @@ const Navigation = () => {
               <div className="px-3 py-2">
                 <PlaylistViewer
                   trigger={
-                    <NavButton
-                      onClick={() => {}}
-                      icon={Music}
-                    >
-                      My Playlists
-                    </NavButton>
+                    <div className={baseButtonClasses}>
+                      <Music className="h-4 w-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">My Playlists</span>
+                    </div>
                   }
                 />
               </div>
