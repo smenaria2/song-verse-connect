@@ -14,25 +14,31 @@ export interface Review {
   song_id: string;
   song_title?: string;
   song_artist?: string;
+  upvote_count?: number;
+  comment_count?: number;
 }
 
-export const useReviews = (songId?: string) => {
+export const useReviews = (songId?: string, sortBy: 'newest' | 'helpful' = 'helpful') => {
   return useQuery({
-    queryKey: ['reviews', songId],
+    queryKey: ['reviews', songId, sortBy],
     queryFn: async () => {
       let query = supabase
-        .from('reviews')
-        .select(`
-          *,
-          profiles!reviews_reviewer_id_fkey(username, avatar_url),
-          songs!reviews_song_id_fkey(title, artist)
-        `);
+        .from('reviews_with_interactions')
+        .select('*');
 
       if (songId) {
         query = query.eq('song_id', songId);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Sort by most helpful (upvotes) or newest
+      if (sortBy === 'helpful') {
+        query = query.order('upvote_count', { ascending: false })
+                    .order('created_at', { ascending: false });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching reviews:', error);
@@ -45,11 +51,13 @@ export const useReviews = (songId?: string) => {
         review_text: review.review_text,
         created_at: review.created_at,
         reviewer_id: review.reviewer_id,
-        reviewer_username: (review.profiles as any)?.username || 'Anonymous',
-        reviewer_avatar: (review.profiles as any)?.avatar_url,
+        reviewer_username: review.reviewer_username || 'Anonymous',
+        reviewer_avatar: review.reviewer_avatar,
         song_id: review.song_id,
-        song_title: (review.songs as any)?.title,
-        song_artist: (review.songs as any)?.artist
+        song_title: review.song_title,
+        song_artist: review.song_artist,
+        upvote_count: review.upvote_count || 0,
+        comment_count: review.comment_count || 0
       })) as Review[];
     }
   });

@@ -5,11 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Music, Star, MessageCircle, Clock, Home, Upload, UserCircle, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Music, Star, MessageCircle, Clock, Home, Upload, UserCircle, Loader2, Pencil, Trash2, ThumbsUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
+import ReviewInteractions from "@/components/ReviewInteractions";
+import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 
 interface Song {
   id: string;
@@ -38,10 +41,11 @@ const Song = () => {
   const [editingReview, setEditingReview] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editRating, setEditRating] = useState(5);
+  const [sortBy, setSortBy] = useState<'newest' | 'helpful'>('helpful');
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '');
+  const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '', sortBy);
   const submitReviewMutation = useSubmitReview();
   const deleteReview = useDeleteReview();
 
@@ -336,7 +340,22 @@ const Song = () => {
           {/* Reviews */}
           <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-right-4 duration-1000 delay-400">
             <CardHeader>
-              <CardTitle className="text-white">Reviews ({reviews.length})</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white">Reviews ({reviews.length})</CardTitle>
+                <Select value={sortBy} onValueChange={(value: 'newest' | 'helpful') => setSortBy(value)}>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-900 border-gray-700">
+                    <SelectItem value="helpful" className="text-white hover:bg-gray-800">
+                      Most Helpful
+                    </SelectItem>
+                    <SelectItem value="newest" className="text-white hover:bg-gray-800">
+                      Newest First
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {reviewsLoading ? (
@@ -356,7 +375,9 @@ const Song = () => {
                       <div className="flex items-start space-x-4">
                         <Avatar className="w-10 h-10">
                           <AvatarImage src={review.reviewer_avatar} />
-                          <AvatarFallback>{review.reviewer_username[0].toUpperCase()}</AvatarFallback>
+                          <AvatarFallback className={`text-white ${getRandomAvatarColor(review.reviewer_id)}`}>
+                            {getUserInitials(review.reviewer_username)}
+                          </AvatarFallback>
                         </Avatar>
                         
                         <div className="flex-1 space-y-3">
@@ -377,6 +398,12 @@ const Song = () => {
                                   ))}
                                 </div>
                                 <span className="text-white/60 text-sm">{formatDate(review.created_at)}</span>
+                                {sortBy === 'helpful' && review.upvote_count > 0 && (
+                                  <div className="flex items-center space-x-1 text-purple-400 text-sm">
+                                    <ThumbsUp className="h-3 w-3 fill-current" />
+                                    <span>{review.upvote_count}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -384,6 +411,12 @@ const Song = () => {
                           {review.review_text && (
                             <p className="text-white/80">{review.review_text}</p>
                           )}
+
+                          {/* Review Interactions */}
+                          <ReviewInteractions 
+                            reviewId={review.id} 
+                            reviewAuthorId={review.reviewer_id}
+                          />
                         </div>
                       </div>
                     </div>
@@ -395,7 +428,9 @@ const Song = () => {
                       <div className="flex items-start space-x-4">
                         <Avatar className="w-10 h-10">
                           <AvatarImage src={userReview.reviewer_avatar} />
-                          <AvatarFallback>{userReview.reviewer_username[0].toUpperCase()}</AvatarFallback>
+                          <AvatarFallback className={`text-white ${getRandomAvatarColor(userReview.reviewer_id)}`}>
+                            {getUserInitials(userReview.reviewer_username)}
+                          </AvatarFallback>
                         </Avatar>
                         
                         <div className="flex-1 space-y-3">
@@ -473,6 +508,12 @@ const Song = () => {
                                       ))}
                                     </div>
                                     <span className="text-white/60 text-sm">{formatDate(userReview.created_at)}</span>
+                                    {userReview.upvote_count > 0 && (
+                                      <div className="flex items-center space-x-1 text-purple-400 text-sm">
+                                        <ThumbsUp className="h-3 w-3 fill-current" />
+                                        <span>{userReview.upvote_count}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -501,6 +542,12 @@ const Song = () => {
                               {userReview.review_text && (
                                 <p className="text-white/80 mt-3">{userReview.review_text}</p>
                               )}
+
+                              {/* Review Interactions for user's own review */}
+                              <ReviewInteractions 
+                                reviewId={userReview.id} 
+                                reviewAuthorId={userReview.reviewer_id}
+                              />
                             </div>
                           )}
                         </div>
