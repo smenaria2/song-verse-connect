@@ -114,42 +114,45 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                 className="flex-shrink-0 px-2"
                 style={{ width: `${100 / recentReviews.length}%` }}
               >
-                {/* Make the entire review card clickable */}
+                {/* Make the entire review card clickable with improved contrast */}
                 <Link 
                   to={`/song/${review.song_id}#review-${review.id}`}
-                  className="block bg-black/20 rounded-md p-3 md:p-4 border border-white/10 h-full hover:bg-black/30 hover:border-purple-500/30 transition-all duration-200 cursor-pointer group"
+                  className="block bg-white/15 rounded-lg p-3 md:p-4 border border-white/20 h-full hover:bg-white/25 hover:border-purple-400/50 transition-all duration-200 cursor-pointer group shadow-lg backdrop-blur-sm"
                 >
-                  <div className="flex items-center space-x-4 mb-4">
-                    <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <Avatar className="h-8 w-8 md:h-10 md:w-10 ring-2 ring-white/20">
                       <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
-                      <AvatarFallback className={`text-xs md:text-sm text-white ${getRandomAvatarColor(review.reviewer_id)}`}>
+                      <AvatarFallback className={`text-xs md:text-sm text-white font-semibold ${getRandomAvatarColor(review.reviewer_id)}`}>
                         {getUserInitials(review.reviewer_username)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm md:text-lg font-semibold text-white truncate group-hover:text-purple-300 transition-colors">{review.reviewer_username}</h3>
-                      <p className="text-white/60 text-xs md:text-sm">
+                      <h3 className="text-sm md:text-base font-semibold text-white truncate group-hover:text-purple-200 transition-colors">{review.reviewer_username}</h3>
+                      <p className="text-white/80 text-xs md:text-sm">
                         {new Date(review.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <div className="mb-4">
-                    <h4 className="font-semibold text-sm md:text-base truncate text-white group-hover:text-purple-300 transition-colors">{review.song_title || 'Unknown Song'}</h4>
-                    <p className="text-white/70 text-xs md:text-sm truncate">{review.song_artist || 'Unknown Artist'}</p>
+                  
+                  <div className="mb-3">
+                    <h4 className="font-semibold text-sm md:text-base truncate text-white group-hover:text-purple-200 transition-colors">{review.song_title || 'Unknown Song'}</h4>
+                    <p className="text-white/90 text-xs md:text-sm truncate font-medium">{review.song_artist || 'Unknown Artist'}</p>
                   </div>
-                  <div className="flex items-center mb-4">
+                  
+                  <div className="flex items-center mb-3">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-4 w-4 ${i < review.rating ? "text-yellow-400 fill-current" : "text-gray-400"
+                        className={`h-4 w-4 ${i < review.rating ? "text-yellow-300 fill-current" : "text-white/40"
                           }`}
                       />
                     ))}
                   </div>
-                  <p className="text-white/80 text-xs md:text-sm line-clamp-3">{review.review_text}</p>
+                  
+                  <p className="text-white/95 text-xs md:text-sm line-clamp-3 font-medium leading-relaxed">{review.review_text}</p>
                   
                   {/* Visual indicator that this is clickable */}
-                  <div className="mt-3 text-purple-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="mt-3 text-purple-300 text-xs opacity-0 group-hover:opacity-100 transition-opacity font-medium">
                     Click to view full review →
                   </div>
                 </Link>
@@ -158,14 +161,16 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
           </div>
         </div>
         
-        {/* Dots indicator */}
+        {/* Dots indicator with better visibility */}
         <div className="flex justify-center mt-4 space-x-2">
           {Array.from({ length: maxIndex + 1 }).map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === currentIndex ? 'bg-purple-400' : 'bg-white/30'
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentIndex 
+                  ? 'bg-purple-300 shadow-lg scale-125' 
+                  : 'bg-white/40 hover:bg-white/60'
               }`}
             />
           ))}
