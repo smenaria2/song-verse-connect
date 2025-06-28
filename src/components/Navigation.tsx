@@ -31,20 +31,15 @@ const Navigation = () => {
     </Link>
   );
 
-  const NavButton = ({ onClick, children, icon: Icon, variant = "ghost" }: { 
+  const NavButton = ({ onClick, children, icon: Icon }: { 
     onClick: () => void; 
     children: React.ReactNode; 
     icon: any;
-    variant?: "ghost" | "outline";
   }) => (
     <Button
       onClick={onClick}
-      variant={variant}
-      className={`flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm ${
-        variant === "outline" 
-          ? "border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white hover:border-purple-400 shadow-sm hover:shadow-md"
-          : "text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm"
-      }`}
+      variant="ghost"
+      className="flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm"
     >
       <Icon className="h-4 w-4 flex-shrink-0" />
       <span className="whitespace-nowrap">{children}</span>
@@ -80,7 +75,6 @@ const Navigation = () => {
               <NavButton
                 onClick={signOut}
                 icon={LogOut}
-                variant="outline"
               >
                 Sign Out
               </NavButton>
@@ -123,7 +117,6 @@ const Navigation = () => {
                 <NavButton
                   onClick={signOut}
                   icon={LogOut}
-                  variant="outline"
                 >
                   Sign Out
                 </NavButton>
