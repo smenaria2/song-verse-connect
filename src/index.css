@@ -108,7 +108,7 @@
     padding: 0;
     min-height: 100vh;
     /* Add padding bottom to account for mini player */
-    padding-bottom: 80px;
+    padding-bottom: 100px;
   }
 
   #root {
@@ -147,7 +147,7 @@
     body {
       font-size: 14px;
       /* Increase bottom padding for mobile mini player */
-      padding-bottom: 100px;
+      padding-bottom: 140px;
     }
 
     .container {
@@ -255,31 +255,37 @@
   }
 
   /* Mini player specific styles */
-  .mini-player-visualizer {
-    @apply flex items-end space-x-1 h-8;
+  .mini-player-container {
+    @apply fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/20 z-50 shadow-2xl;
   }
 
-  .mini-player-bar {
-    @apply bg-gradient-to-t from-purple-600 to-purple-400 rounded-sm transition-all duration-150;
-    width: 3px;
-  }
-
-  /* Progress bar enhancements */
-  .progress-bar {
+  /* Enhanced slider styles for mini player */
+  .mini-player-slider {
     @apply relative bg-white/20 rounded-full cursor-pointer group;
   }
 
-  .progress-bar-fill {
+  .mini-player-slider-track {
     @apply h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-150;
   }
 
-  .progress-bar-thumb {
+  .mini-player-slider-thumb {
     @apply absolute top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing;
   }
 
-  /* Login button special styling */
-  .login-button {
-    @apply bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 hover:shadow-lg hover:scale-105 transform transition-all duration-300;
+  /* Time display styling */
+  .time-display {
+    @apply font-mono text-xs text-white/70 tabular-nums;
+  }
+
+  /* Loading states */
+  .loading-shimmer {
+    @apply bg-gradient-to-r from-white/10 via-white/20 to-white/10 bg-[length:200%_100%] animate-pulse;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 }
 
@@ -321,36 +327,52 @@
 
   /* Mini player mobile adjustments */
   .mini-player-mobile {
-    @apply flex-col space-y-2;
+    @apply flex-col space-y-3;
   }
 
   .mini-player-controls {
-    @apply flex justify-center space-x-4;
+    @apply flex justify-center space-x-6;
+  }
+
+  /* Enhanced mobile mini player spacing */
+  .mini-player-container {
+    @apply px-3 py-3;
   }
 }
 
 /* Smooth animations for mini player */
-@keyframes visualizer-pulse {
-  0%, 100% { transform: scaleY(0.3); }
-  50% { transform: scaleY(1); }
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.visualizer-bar {
-  animation: visualizer-pulse 1.5s ease-in-out infinite;
+.mini-player-container {
+  animation: fade-in 0.3s ease-out;
 }
 
-.visualizer-bar:nth-child(2) { animation-delay: 0.1s; }
-.visualizer-bar:nth-child(3) { animation-delay: 0.2s; }
-.visualizer-bar:nth-child(4) { animation-delay: 0.3s; }
-.visualizer-bar:nth-child(5) { animation-delay: 0.4s; }
-
-/* Loading states */
-.loading-shimmer {
-  @apply bg-gradient-to-r from-white/10 via-white/20 to-white/10 bg-[length:200%_100%] animate-pulse;
-  animation: shimmer 2s infinite;
+/* Focus states for accessibility */
+button:focus-visible,
+[role="slider"]:focus-visible {
+  @apply outline-none ring-2 ring-purple-500 ring-offset-2 ring-offset-black;
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+/* Improved slider component styling */
+[data-radix-slider-root] {
+  @apply relative flex items-center select-none touch-none w-full h-5;
+}
+
+[data-radix-slider-track] {
+  @apply bg-white/20 relative grow rounded-full h-2;
+}
+
+[data-radix-slider-range] {
+  @apply absolute bg-gradient-to-r from-purple-500 to-purple-600 rounded-full h-full;
+}
+
+[data-radix-slider-thumb] {
+  @apply block w-4 h-4 bg-white shadow-lg rounded-full hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-150;
+}
+
+[data-radix-slider-thumb]:hover {
+  @apply scale-110;
 }
