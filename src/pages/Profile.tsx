@@ -189,7 +189,7 @@ const Profile = () => {
 
         <Tabs defaultValue="submitted" className="space-y-6">
           <div className="flex justify-center">
-            <TabsList className="bg-white/10 border border-white/20 backdrop-blur-md rounded-xl p-1 grid grid-cols-4 w-full max-w-2xl">
+            <TabsList className="bg-white/10 border border-white/20 backdrop-blur-md rounded-xl p-2 grid grid-cols-4 w-full max-w-2xl gap-2">
               <TabsTrigger 
                 value="submitted" 
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-white/70 hover:text-white transition-all duration-200 rounded-lg px-4 py-2 text-sm font-medium"
