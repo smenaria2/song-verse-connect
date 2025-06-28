@@ -87,7 +87,7 @@ export const useSubmitReview = () => {
         .select('id, reviewer_id')
         .eq('song_id', reviewData.song_id)
         .eq('reviewer_id', userData.user.id)
-        .single();
+        .maybeSingle();
 
       if (existingReview) {
         // Verify the user owns this review (backend validation)
