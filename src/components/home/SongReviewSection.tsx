@@ -70,8 +70,8 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
 
   return (
     <div className="mt-3 space-y-3">
-      {/* Display existing review */}
-      {displayReview && !isExpanded && (
+      {/* Display existing review - only show if it's NOT from the current user */}
+      {displayReview && displayReview.reviewer_id !== user?.id && !isExpanded && (
         <div className="bg-white/5 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
@@ -161,7 +161,7 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
                 <Button 
                   type="submit" 
                   size="sm" 
-                  className="flex-1 text-xs bg-purple-600 hover:bg-purple-700"
+                  className="flex-1 text-xs bg-purple-600 hover:bg-purple-700 h-8 rounded-md transition-all duration-200 font-medium"
                   disabled={submitReview.isPending || !reviewText.trim()}
                 >
                   <Save className="h-3 w-3 mr-1" />
@@ -172,7 +172,7 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
                   variant="outline" 
                   size="sm" 
                   onClick={cancelReview}
-                  className="border-white/20 text-white/70 hover:bg-white/10"
+                  className="border-white/20 text-white/70 hover:bg-white/10 h-8 rounded-md transition-all duration-200 font-medium"
                 >
                   <X className="h-3 w-3" />
                 </Button>

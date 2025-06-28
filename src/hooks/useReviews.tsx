@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -85,13 +84,18 @@ export const useSubmitReview = () => {
       // Check if user has already reviewed this song
       const { data: existingReview } = await supabase
         .from('reviews')
-        .select('id')
+        .select('id, reviewer_id')
         .eq('song_id', reviewData.song_id)
         .eq('reviewer_id', userData.user.id)
         .single();
 
       if (existingReview) {
-        // Update existing review instead of creating new one
+        // Verify the user owns this review (backend validation)
+        if (existingReview.reviewer_id !== userData.user.id) {
+          throw new Error('Unauthorized: You can only edit your own reviews');
+        }
+
+        // Update existing review
         const { data, error } = await supabase
           .from('reviews')
           .update({
@@ -100,6 +104,7 @@ export const useSubmitReview = () => {
             updated_at: new Date().toISOString()
           })
           .eq('id', existingReview.id)
+          .eq('reviewer_id', userData.user.id) // Additional security check
           .select()
           .single();
         
