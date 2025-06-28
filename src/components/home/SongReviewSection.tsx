@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Edit2, Save, X, MessageSquare, Pencil } from "lucide-react";
+import { Star, Edit2, Save, X, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useReviews, useSubmitReview } from "@/hooks/useReviews";
+import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { Song } from "@/hooks/useSongs";
 
 interface SongReviewSectionProps {
@@ -14,6 +14,7 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
   const { user } = useAuth();
   const { data: reviews = [] } = useReviews(song.id);
   const submitReview = useSubmitReview();
+  const deleteReview = useDeleteReview();
   const [isReviewing, setIsReviewing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [reviewText, setReviewText] = useState("");
@@ -21,9 +22,9 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
 
   // Get user's existing review for this song
   const userReview = reviews.find(review => review.reviewer_id === user?.id);
-  // Get other users' reviews (excluding current user's review)
+  // Get other users' reviews (excluding current user's review) - prioritize these
   const otherReviews = reviews.filter(review => review.reviewer_id !== user?.id);
-  // Get one review to display from other users
+  // Get one review to display from other users (prioritized)
   const displayReview = otherReviews[0];
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -42,6 +43,14 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
         setIsEditing(false);
       }
     });
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview) return;
+    
+    if (window.confirm('Are you sure you want to delete your review? This action cannot be undone.')) {
+      deleteReview.mutate(userReview.id);
+    }
   };
 
   const startEditing = () => {
@@ -67,42 +76,8 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
 
   return (
     <div className="mt-3 space-y-3">
-      {/* Display user's own review with edit functionality */}
-      {userReview && !isEditing && (
-        <div className="bg-white/10 rounded-lg p-3 border border-purple-500/30">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-3 w-3 ${
-                      i < userReview.rating 
-                        ? "text-yellow-400 fill-current" 
-                        : "text-gray-400"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-purple-300 text-xs font-medium">Your review</span>
-            </div>
-            {/* Pencil icon for editing - only visible for user's own review */}
-            <button
-              onClick={startEditing}
-              className="text-white/60 hover:text-purple-400 transition-colors p-1 rounded hover:bg-white/10"
-              title="Edit your review"
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
-          </div>
-          {userReview.review_text && (
-            <p className="text-white/90 text-xs">{userReview.review_text}</p>
-          )}
-        </div>
-      )}
-
-      {/* Display other users' reviews (no edit functionality) */}
-      {displayReview && !userReview && !isReviewing && (
+      {/* PRIORITIZE: Display other users' reviews first */}
+      {displayReview && (
         <div className="bg-white/5 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
@@ -127,6 +102,50 @@ const SongReviewSection = ({ song }: SongReviewSectionProps) => {
             <p className="text-white/80 text-xs line-clamp-2">
               {displayReview.review_text}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Display user's own review with edit/delete functionality */}
+      {userReview && !isEditing && (
+        <div className="bg-white/10 rounded-lg p-3 border border-purple-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-3 w-3 ${
+                      i < userReview.rating 
+                        ? "text-yellow-400 fill-current" 
+                        : "text-gray-400"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-purple-300 text-xs font-medium">Your review</span>
+            </div>
+            {/* Edit and Delete buttons for user's own review */}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={startEditing}
+                className="text-white/60 hover:text-purple-400 transition-colors p-1 rounded hover:bg-white/10"
+                title="Edit your review"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button
+                onClick={handleDeleteReview}
+                className="text-white/60 hover:text-red-400 transition-colors p-1 rounded hover:bg-white/10"
+                title="Delete your review"
+                disabled={deleteReview.isPending}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          {userReview.review_text && (
+            <p className="text-white/90 text-xs">{userReview.review_text}</p>
           )}
         </div>
       )}

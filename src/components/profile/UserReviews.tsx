@@ -4,7 +4,7 @@ import { Star, Play, Pencil, Trash2 } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { useSubmitReview } from "@/hooks/useReviews";
+import { useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 
 interface UserReview {
   id: string;
@@ -29,6 +29,7 @@ const UserReviews = ({ reviews }: UserReviewsProps) => {
   const [editText, setEditText] = useState("");
   const [editRating, setEditRating] = useState(5);
   const submitReview = useSubmitReview();
+  const deleteReview = useDeleteReview();
 
   const handleSongPlay = (song: UserReview['song']) => {
     playPause({
@@ -61,6 +62,16 @@ const UserReviews = ({ reviews }: UserReviewsProps) => {
       setEditingReview(null);
     } catch (error) {
       console.error('Failed to update review:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      try {
+        await deleteReview.mutateAsync(reviewId);
+      } catch (error) {
+        console.error('Failed to delete review:', error);
+      }
     }
   };
 
@@ -183,6 +194,16 @@ const UserReviews = ({ reviews }: UserReviewsProps) => {
                         title="Edit review"
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteReview(review.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-white/60 hover:text-red-400 hover:bg-white/10 p-2"
+                        title="Delete review"
+                        disabled={deleteReview.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button
                         onClick={() => handleSongPlay(review.song)}

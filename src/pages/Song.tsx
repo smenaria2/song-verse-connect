@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Music, Star, MessageCircle, Clock, Home, Upload, UserCircle, Loader2 } from "lucide-react";
+import { Music, Star, MessageCircle, Clock, Home, Upload, UserCircle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useReviews, useSubmitReview } from "@/hooks/useReviews";
+import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 
 interface Song {
   id: string;
@@ -36,11 +35,19 @@ const Song = () => {
   const [loading, setLoading] = useState(true);
   const [newReview, setNewReview] = useState({ rating: 0, text: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [editingReview, setEditingReview] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editRating, setEditRating] = useState(5);
   const { user } = useAuth();
   const { toast } = useToast();
   
   const { data: reviews = [], isLoading: reviewsLoading } = useReviews(id || '');
   const submitReviewMutation = useSubmitReview();
+  const deleteReview = useDeleteReview();
+
+  // Separate user's review from others and prioritize others
+  const userReview = reviews.find(review => review.reviewer_id === user?.id);
+  const otherReviews = reviews.filter(review => review.reviewer_id !== user?.id);
 
   useEffect(() => {
     if (id) {
@@ -104,6 +111,43 @@ const Song = () => {
       console.error('Error submitting review:', error);
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const startEditing = (review: any) => {
+    setEditingReview(review.id);
+    setEditText(review.review_text || "");
+    setEditRating(review.rating);
+  };
+
+  const cancelEditing = () => {
+    setEditingReview(null);
+    setEditText("");
+    setEditRating(5);
+  };
+
+  const saveEdit = async (reviewId: string) => {
+    if (!id) return;
+    
+    try {
+      await submitReviewMutation.mutateAsync({
+        song_id: id,
+        rating: editRating,
+        review_text: editText
+      });
+      setEditingReview(null);
+    } catch (error) {
+      console.error('Failed to update review:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      try {
+        await deleteReview.mutateAsync(reviewId);
+      } catch (error) {
+        console.error('Failed to delete review:', error);
+      }
     }
   };
 
@@ -234,7 +278,7 @@ const Song = () => {
           </Card>
 
           {/* Write Review */}
-          {user && (
+          {user && !userReview && (
             <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-left-4 duration-1000 delay-200">
               <CardHeader>
                 <CardTitle className="text-white">Write a Review</CardTitle>
@@ -301,47 +345,169 @@ const Song = () => {
                   <p className="text-white/70 mt-4">Loading reviews...</p>
                 </div>
               ) : reviews.length > 0 ? (
-                reviews.map((review, index) => (
-                  <div 
-                    key={review.id} 
-                    className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={review.reviewer_avatar} />
-                        <AvatarFallback>{review.reviewer_username[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="text-white font-medium">{review.reviewer_username}</h4>
-                            <div className="flex items-center space-x-2">
-                              <div className="flex items-center space-x-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-4 w-4 ${
-                                      i < review.rating
-                                        ? "text-yellow-400 fill-current"
-                                        : "text-gray-400"
-                                    }`}
-                                  />
-                                ))}
+                <div className="space-y-6">
+                  {/* PRIORITIZE: Show other users' reviews first */}
+                  {otherReviews.map((review, index) => (
+                    <div 
+                      key={review.id} 
+                      className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start space-x-4">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={review.reviewer_avatar} />
+                          <AvatarFallback>{review.reviewer_username[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="text-white font-medium">{review.reviewer_username}</h4>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      className={`h-4 w-4 ${
+                                        i < review.rating
+                                          ? "text-yellow-400 fill-current"
+                                          : "text-gray-400"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-white/60 text-sm">{formatDate(review.created_at)}</span>
                               </div>
-                              <span className="text-white/60 text-sm">{formatDate(review.created_at)}</span>
                             </div>
                           </div>
-                        </div>
 
-                        {review.review_text && (
-                          <p className="text-white/80">{review.review_text}</p>
-                        )}
+                          {review.review_text && (
+                            <p className="text-white/80">{review.review_text}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+
+                  {/* Show user's own review last with edit/delete options */}
+                  {userReview && (
+                    <div className="border-t border-purple-500/30 pt-6">
+                      <div className="flex items-start space-x-4">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={userReview.reviewer_avatar} />
+                          <AvatarFallback>{userReview.reviewer_username[0].toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 space-y-3">
+                          {editingReview === userReview.id ? (
+                            // Edit mode
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-purple-300 font-medium">Edit Your Review</h4>
+                              </div>
+                              
+                              <div>
+                                <div className="flex items-center space-x-1 mb-2">
+                                  {[1, 2, 3, 4, 5].map((rating) => (
+                                    <button
+                                      key={rating}
+                                      onClick={() => setEditRating(rating)}
+                                      className="p-1"
+                                    >
+                                      <Star
+                                        className={`h-5 w-5 ${
+                                          rating <= editRating
+                                            ? "text-yellow-400 fill-current"
+                                            : "text-gray-400"
+                                        } hover:text-yellow-400 transition-colors`}
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                                <Textarea
+                                  value={editText}
+                                  onChange={(e) => setEditText(e.target.value)}
+                                  className="bg-white/10 border-white/20 text-white placeholder-white/60"
+                                  placeholder="Update your review..."
+                                  rows={3}
+                                />
+                              </div>
+                              
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={() => saveEdit(userReview.id)}
+                                  disabled={submitReviewMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  Save Changes
+                                </Button>
+                                <Button
+                                  onClick={cancelEditing}
+                                  variant="outline"
+                                  className="border-white/20 text-white hover:bg-white/10"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            // View mode
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <h4 className="text-purple-300 font-medium">{userReview.reviewer_username}</h4>
+                                    <span className="text-purple-400 text-xs bg-purple-600/20 px-2 py-1 rounded">Your Review</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star
+                                          key={i}
+                                          className={`h-4 w-4 ${
+                                            i < userReview.rating
+                                              ? "text-yellow-400 fill-current"
+                                              : "text-gray-400"
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="text-white/60 text-sm">{formatDate(userReview.created_at)}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    onClick={() => startEditing(userReview)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-white/60 hover:text-purple-400 hover:bg-white/10"
+                                    title="Edit review"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleDeleteReview(userReview.id)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-white/60 hover:text-red-400 hover:bg-white/10"
+                                    title="Delete review"
+                                    disabled={deleteReview.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {userReview.review_text && (
+                                <p className="text-white/80 mt-3">{userReview.review_text}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-8">
                   <MessageCircle className="h-12 w-12 text-white/40 mx-auto mb-4" />

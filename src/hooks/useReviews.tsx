@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSecurityValidation } from './useSecurityValidation';
 
@@ -142,6 +142,44 @@ export const useSubmitReview = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to submit review",
+        variant: "destructive"
+      });
+    }
+  });
+};
+
+export const useDeleteReview = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (reviewId: string) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Delete the review (RLS policies ensure user can only delete their own reviews)
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId)
+        .eq('reviewer_id', userData.user.id); // Additional security check
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['songs'] });
+      toast({
+        title: "Success!",
+        description: "Review deleted successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete review",
         variant: "destructive"
       });
     }
