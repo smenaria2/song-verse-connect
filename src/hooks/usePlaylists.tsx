@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -139,7 +138,7 @@ export const useAddSongToPlaylist = () => {
         .select('id')
         .eq('playlist_id', playlistId)
         .eq('song_id', songId)
-        .single();
+        .maybeSingle();
 
       if (existingSong) {
         throw new Error('Song already exists in this playlist');
