@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ interface Song {
 
 const Song = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const [song, setSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
   const [newReview, setNewReview] = useState({ rating: 0, text: "" });
@@ -58,6 +59,27 @@ const Song = () => {
       fetchSongData();
     }
   }, [id]);
+
+  // Scroll to specific review if hash is present
+  useEffect(() => {
+    if (location.hash && reviews.length > 0) {
+      const reviewId = location.hash.replace('#review-', '');
+      const reviewElement = document.getElementById(`review-${reviewId}`);
+      if (reviewElement) {
+        setTimeout(() => {
+          reviewElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          // Add a subtle highlight effect
+          reviewElement.classList.add('ring-2', 'ring-purple-500', 'ring-opacity-50');
+          setTimeout(() => {
+            reviewElement.classList.remove('ring-2', 'ring-purple-500', 'ring-opacity-50');
+          }, 3000);
+        }, 500);
+      }
+    }
+  }, [location.hash, reviews]);
 
   const fetchSongData = async () => {
     try {
@@ -369,7 +391,8 @@ const Song = () => {
                   {otherReviews.map((review, index) => (
                     <div 
                       key={review.id} 
-                      className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4"
+                      id={`review-${review.id}`}
+                      className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4 scroll-mt-24 transition-all duration-300"
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="flex items-start space-x-4">
@@ -424,7 +447,7 @@ const Song = () => {
 
                   {/* Show user's own review last with edit/delete options */}
                   {userReview && (
-                    <div className="border-t border-purple-500/30 pt-6">
+                    <div className="border-t border-purple-500/30 pt-6" id={`review-${userReview.id}`}>
                       <div className="flex items-start space-x-4">
                         <Avatar className="w-10 h-10">
                           <AvatarImage src={userReview.reviewer_avatar} />

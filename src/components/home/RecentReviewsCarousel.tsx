@@ -114,7 +114,11 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                 className="flex-shrink-0 px-2"
                 style={{ width: `${100 / recentReviews.length}%` }}
               >
-                <div className="bg-black/20 rounded-md p-3 md:p-4 border border-white/10 h-full">
+                {/* Make the entire review card clickable */}
+                <Link 
+                  to={`/song/${review.song_id}#review-${review.id}`}
+                  className="block bg-black/20 rounded-md p-3 md:p-4 border border-white/10 h-full hover:bg-black/30 hover:border-purple-500/30 transition-all duration-200 cursor-pointer group"
+                >
                   <div className="flex items-center space-x-4 mb-4">
                     <Avatar className="h-8 w-8 md:h-10 md:w-10">
                       <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
@@ -123,17 +127,15 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm md:text-lg font-semibold text-white truncate">{review.reviewer_username}</h3>
+                      <h3 className="text-sm md:text-lg font-semibold text-white truncate group-hover:text-purple-300 transition-colors">{review.reviewer_username}</h3>
                       <p className="text-white/60 text-xs md:text-sm">
                         {new Date(review.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <div className="mb-4">
-                    <Link to={`/song/${review.song_id}`} className="text-white hover:text-purple-400">
-                      <h4 className="font-semibold text-sm md:text-base truncate">{review.song_title || 'Unknown Song'}</h4>
-                      <p className="text-white/70 text-xs md:text-sm truncate">{review.song_artist || 'Unknown Artist'}</p>
-                    </Link>
+                    <h4 className="font-semibold text-sm md:text-base truncate text-white group-hover:text-purple-300 transition-colors">{review.song_title || 'Unknown Song'}</h4>
+                    <p className="text-white/70 text-xs md:text-sm truncate">{review.song_artist || 'Unknown Artist'}</p>
                   </div>
                   <div className="flex items-center mb-4">
                     {[...Array(5)].map((_, i) => (
@@ -145,7 +147,12 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                     ))}
                   </div>
                   <p className="text-white/80 text-xs md:text-sm line-clamp-3">{review.review_text}</p>
-                </div>
+                  
+                  {/* Visual indicator that this is clickable */}
+                  <div className="mt-3 text-purple-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click to view full review →
+                  </div>
+                </Link>
               </div>
             ))}
           </div>
