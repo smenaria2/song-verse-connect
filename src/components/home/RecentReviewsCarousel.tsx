@@ -18,8 +18,6 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  if (!recentReviews || recentReviews.length === 0) return null;
-
   const itemsPerView = 3;
   const maxIndex = Math.max(0, recentReviews.length - itemsPerView);
 
@@ -41,6 +39,9 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
       }
     };
   }, [isPlaying, isPaused, maxIndex, recentReviews.length, itemsPerView]);
+
+  // Move the conditional check after all hooks
+  if (!recentReviews || recentReviews.length === 0) return null;
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
