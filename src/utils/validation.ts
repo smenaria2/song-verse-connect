@@ -12,11 +12,10 @@ export { extractYouTubeId };
 export const sanitizeText = (text: string): string => {
   // Basic HTML sanitization
   return text
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
-    .replace(/'/g, ''')
-    )
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
     .trim();
 };
 
