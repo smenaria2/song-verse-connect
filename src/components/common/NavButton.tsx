@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LucideIcon } from "lucide-react";
+import { DivideIcon as LucideIcon } from "lucide-react";
 
 interface NavButtonProps {
   onClick: () => void;
