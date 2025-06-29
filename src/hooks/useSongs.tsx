@@ -1,64 +1,10 @@
-
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useSecurityValidation } from './useSecurityValidation';
-import { extractYouTubeId } from '@/utils/validation';
-
-export interface Song {
-  id: string;
-  youtube_url: string;
-  youtube_id: string;
-  title: string;
-  artist: string;
-  genre: string;
-  release_year?: number;
-  thumbnail_url?: string;
-  duration?: string;
-  submitter_id: string;
-  created_at: string;
-  updated_at: string;
-  submitter_username?: string;
-  submitter_avatar?: string;
-  average_rating: number;
-  review_count: number;
-}
-
-export interface SongsStats {
-  total_songs: number;
-  total_artists: number;
-  total_reviews: number;
-  average_rating: number;
-}
-
-// Define allowed genre values to match database enum - updated to match actual DB schema
-type SongGenre = 'rock' | 'pop' | 'hip_hop' | 'electronic' | 'jazz' | 'classical' | 'country' | 'r_b' | 'indie' | 'alternative' | 'grunge' | 'metal' | 'folk' | 'blues' | 'reggae' | 'punk' | 'funk' | 'soul' | 'disco' | 'house' | 'techno' | 'dubstep' | 'ambient' | 'experimental' | 'other';
-
-// Map display genres to database enum values - updated to match DB schema
-const genreMapping: { [key: string]: SongGenre } = {
-  'All': 'other', // This won't be used in filtering
-  'Rock': 'rock',
-  'Pop': 'pop',
-  'Hip Hop': 'hip_hop',
-  'Electronic': 'electronic',
-  'Jazz': 'jazz',
-  'Classical': 'classical',
-  'Grunge': 'grunge',
-  'Alternative': 'alternative',
-  'Indie': 'indie',
-  'Folk': 'folk',
-  'Experimental': 'experimental',
-  'Hindustani Classical': 'classical',
-  'Cover/Album': 'other',
-  'Bollywood Film Music': 'other',
-  'Bhangra': 'folk',
-  'Sufi/Qawwali': 'other',
-  'Indian Folk': 'folk',
-  'Indie/Indian Pop': 'indie',
-  'Devotional': 'other',
-  'Fusion': 'experimental',
-  'Western': 'other'
-};
+import { extractYouTubeId } from '@/utils/youtube/helpers';
+import { genreMapping } from '@/constants/genres';
+import { Song, SongsStats, SongGenre } from '@/types/app';
 
 export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
   return useInfiniteQuery({

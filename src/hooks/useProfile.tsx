@@ -2,27 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useSecurityValidation } from './useSecurityValidation';
-
-export interface Profile {
-  id: string;
-  username: string;
-  bio?: string;
-  avatar_url?: string;
-  website?: string;
-  location?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserStats {
-  id: string;
-  username: string;
-  songs_submitted: number;
-  reviews_written: number;
-  average_rating_given: number;
-  following_count: number;
-  followers_count: number;
-}
+import { UserProfile, UserStats } from '@/types/app';
 
 export const useProfile = (userId?: string) => {
   const { user } = useAuth();
@@ -40,7 +20,7 @@ export const useProfile = (userId?: string) => {
         .single();
       
       if (error) throw error;
-      return data as Profile;
+      return data as UserProfile;
     },
     enabled: !!targetUserId
   });
@@ -73,7 +53,7 @@ export const useUpdateProfile = () => {
   const { validateAndSanitizeProfile } = useSecurityValidation();
   
   return useMutation({
-    mutationFn: async (updates: Partial<Profile>) => {
+    mutationFn: async (updates: Partial<UserProfile>) => {
       // Validate and sanitize input
       const validatedUpdates = validateAndSanitizeProfile(updates);
       if (!validatedUpdates) {

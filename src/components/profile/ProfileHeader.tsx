@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,16 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
-
-interface UserProfile {
-  id: string;
-  username: string;
-  bio?: string;
-  avatar_url?: string;
-  website?: string;
-  location?: string;
-  created_at: string;
-}
+import ProfileButton, { CancelButton } from "@/components/common/ProfileButton";
+import { formatDate } from "@/utils/formatters/date";
+import { UserProfile } from "@/types/app";
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -68,51 +60,6 @@ const ProfileHeader = ({ profile, setProfile }: ProfileHeaderProps) => {
       setSaving(false);
     }
   };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const ProfileButton = ({ onClick, children, icon: Icon, variant = "outline", disabled = false }: {
-    onClick: () => void;
-    children: React.ReactNode;
-    icon: any;
-    variant?: "outline" | "default";
-    disabled?: boolean;
-  }) => (
-    <Button
-      onClick={onClick}
-      disabled={disabled}
-      variant={variant}
-      size="sm"
-      className={`flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm ${
-        variant === "default"
-          ? "bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg"
-          : variant === "outline" && disabled
-          ? "border-gray-500/50 bg-gray-600/20 text-gray-400 cursor-not-allowed"
-          : "border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white hover:border-purple-400 shadow-sm hover:shadow-md"
-      }`}
-    >
-      <Icon className="h-4 w-4 flex-shrink-0" />
-      <span className="whitespace-nowrap">{children}</span>
-    </Button>
-  );
-
-  const CancelButton = ({ onClick }: { onClick: () => void }) => (
-    <Button
-      onClick={onClick}
-      variant="outline"
-      size="sm"
-      className="flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm border-red-500/50 bg-red-600/20 text-red-300 hover:bg-red-600/30 hover:text-white hover:border-red-400 shadow-sm hover:shadow-md"
-    >
-      <X className="h-4 w-4 flex-shrink-0" />
-      <span className="whitespace-nowrap">Cancel</span>
-    </Button>
-  );
 
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4 card-responsive">

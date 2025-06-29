@@ -5,36 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music, Youtube, AlertCircle, CheckCircle, Loader2, Home, Upload, UserCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Music, Youtube, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubmitSong } from "@/hooks/useSongs";
 import { useToast } from "@/components/ui/use-toast";
-
-interface SongData {
-  title: string;
-  artist: string;
-  thumbnail: string;
-  duration: string;
-}
-
-interface YouTubeVideoResponse {
-  items: Array<{
-    snippet: {
-      title: string;
-      channelTitle: string;
-      thumbnails: {
-        maxres?: { url: string };
-        high?: { url: string };
-        medium?: { url: string };
-        default: { url: string };
-      };
-    };
-    contentDetails: {
-      duration: string;
-    };
-  }>;
-}
+import Navigation from "@/components/Navigation";
+import { genres, genreToDbMapping } from "@/constants/genres";
+import { extractYouTubeId, validateYouTubeUrl } from "@/utils/youtube/helpers";
+import { fetchYouTubeVideoData } from "@/utils/youtube/api";
+import { SongData, SongGenre } from "@/types/app";
 
 const Submit = () => {
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -48,117 +28,8 @@ const Submit = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Updated genres with Indian music categories
-  const genres = [
-    "Hindustani Classical",
-    "Cover/Album", 
-    "Bollywood Film Music",
-    "Bhangra",
-    "Sufi/Qawwali",
-    "Indian Folk (e.g., Rajasthani, Baul, Lavani)",
-    "Indie/Indian Pop",
-    "Devotional (Bhajan/Kirtan)",
-    "Fusion (Classical + Western)",
-    "Western"
-  ];
-
-  // Map display genre to database enum - updated for new genres
-  const genreToDbMapping: { [key: string]: string } = {
-    "Hindustani Classical": "classical",
-    "Cover/Album": "other",
-    "Bollywood Film Music": "bollywood",
-    "Bhangra": "folk",
-    "Sufi/Qawwali": "folk",
-    "Indian Folk (e.g., Rajasthani, Baul, Lavani)": "folk",
-    "Indie/Indian Pop": "indie",
-    "Devotional (Bhajan/Kirtan)": "folk",
-    "Fusion (Classical + Western)": "experimental",
-    "Western": "pop"
-  };
-
-  const extractYouTubeId = (url: string): string | null => {
-    const patterns = [
-      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
-  };
-
-  const formatDuration = (duration: string): string => {
-    // Convert ISO 8601 duration (PT4M13S) to readable format (4:13)
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return "Unknown";
-    
-    const hours = parseInt(match[1] || "0");
-    const minutes = parseInt(match[2] || "0");
-    const seconds = parseInt(match[3] || "0");
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const fetchYouTubeVideoData = async (videoId: string): Promise<SongData> => {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    
-    if (!apiKey || apiKey === 'YOUR_YOUTUBE_API_KEY_HERE') {
-      throw new Error('YouTube API key not configured. Please add your API key to the .env file.');
-    }
-
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=snippet,contentDetails`;
-    
-    const response = await fetch(apiUrl);
-    
-    if (!response.ok) {
-      if (response.status === 403) {
-        throw new Error('YouTube API quota exceeded or invalid API key. Please check your API key and quota.');
-      }
-      throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data: YouTubeVideoResponse = await response.json();
-    
-    if (!data.items || data.items.length === 0) {
-      throw new Error('Video not found or is private/unavailable.');
-    }
-    
-    const video = data.items[0];
-    const snippet = video.snippet;
-    const contentDetails = video.contentDetails;
-    
-    // Get the best available thumbnail
-    const thumbnail = snippet.thumbnails.maxres?.url || 
-                     snippet.thumbnails.high?.url || 
-                     snippet.thumbnails.medium?.url || 
-                     snippet.thumbnails.default.url;
-    
-    // Extract artist from channel title or video title
-    // This is a simple heuristic - you might want to improve this logic
-    let artist = snippet.channelTitle;
-    let title = snippet.title;
-    
-    // Try to extract artist from title if it contains " - "
-    const titleParts = title.split(' - ');
-    if (titleParts.length >= 2) {
-      artist = titleParts[0].trim();
-      title = titleParts.slice(1).join(' - ').trim();
-    }
-    
-    return {
-      title: title,
-      artist: artist,
-      thumbnail: thumbnail,
-      duration: formatDuration(contentDetails.duration)
-    };
-  };
-
   const handleUrlSubmit = async () => {
-    if (!youtubeUrl.includes("youtube.com") && !youtubeUrl.includes("youtu.be")) {
+    if (!validateYouTubeUrl(youtubeUrl)) {
       toast({
         title: "Invalid URL",
         description: "Please enter a valid YouTube URL",
@@ -238,7 +109,7 @@ const Submit = () => {
         youtube_id: videoId,
         title: songData.title,
         artist: songData.artist,
-        genre: dbGenre as any,
+        genre: dbGenre as SongGenre,
         thumbnail_url: songData.thumbnail,
         duration: songData.duration
       });
@@ -262,11 +133,12 @@ const Submit = () => {
           <div className="text-center">
             <Music className="h-16 w-16 text-orange-400 mx-auto mb-4" />
             <p className="text-white text-center mb-4">Please sign in to submit songs</p>
-            <Link to="/auth">
-              <Button className="w-full bg-orange-600 hover:bg-orange-700">
-                Sign In
-              </Button>
-            </Link>
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="w-full bg-orange-600 hover:bg-orange-700"
+            >
+              Sign In
+            </Button>
           </div>
         </Card>
       </div>
@@ -275,31 +147,7 @@ const Submit = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center space-x-2">
-              <Music className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">Song Monk</h1>
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <Home className="h-4 w-4" />
-                <span>Browse</span>
-              </Link>
-              <Link to="/submit" className="flex items-center space-x-2 text-orange-400">
-                <Upload className="h-4 w-4" />
-                <span>Submit Song</span>
-              </Link>
-              <Link to="/profile" className="flex items-center space-x-2 text-white hover:text-orange-400 transition-colors">
-                <UserCircle className="h-4 w-4" />
-                <span>Profile</span>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Navigation />
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">

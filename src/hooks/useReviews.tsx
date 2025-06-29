@@ -2,21 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSecurityValidation } from './useSecurityValidation';
-
-export interface Review {
-  id: string;
-  rating: number;
-  review_text?: string;
-  created_at: string;
-  reviewer_id: string;
-  reviewer_username: string;
-  reviewer_avatar?: string;
-  song_id: string;
-  song_title?: string;
-  song_artist?: string;
-  upvote_count?: number;
-  comment_count?: number;
-}
+import { Review } from '@/types/app';
 
 export const useReviews = (songId?: string, sortBy: 'newest' | 'helpful' = 'helpful') => {
   return useQuery({

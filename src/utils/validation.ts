@@ -1,23 +1,21 @@
-
 // Input validation utilities for security
+import { extractYouTubeId } from '@/utils/youtube/helpers';
+
 export const validateYouTubeUrl = (url: string): boolean => {
   // More flexible YouTube URL validation that matches existing data
   const youtubeRegex = /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}/;
   return youtubeRegex.test(url);
 };
 
-export const extractYouTubeId = (url: string): string | null => {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : null;
-};
+export { extractYouTubeId };
 
 export const sanitizeText = (text: string): string => {
   // Basic HTML sanitization
   return text
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, ''')
     .trim();
 };
 

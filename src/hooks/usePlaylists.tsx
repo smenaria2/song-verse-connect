@@ -2,27 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from './useAuth';
-
-export interface Playlist {
-  id: string;
-  name: string;
-  description?: string;
-  is_public: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PlaylistWithSongs extends Playlist {
-  songs: Array<{
-    id: string;
-    title: string;
-    artist: string;
-    youtube_id: string;
-    thumbnail_url?: string;
-    position: number;
-  }>;
-}
+import { Playlist, PlaylistWithSongs } from '@/types/app';
 
 export const usePlaylists = () => {
   const { user } = useAuth();
