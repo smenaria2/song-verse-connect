@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // Keep useState and useEffect for other potential uses or future features, but the auto-popup useEffect is removed
 import { useAuth } from '@/hooks/useAuth';
 
 export const useWelcomeModal = () => {
   const [showWelcome, setShowWelcome] = useState(false);
-  const [isFirstTime, setIsFirstTime] = useState(false);
-  const { user } = useAuth();
+  const [isFirstTime, setIsFirstTime] = useState(false); // This state can be managed differently or removed if its only purpose was tied to auto-popup
+  const { user } = useAuth(); // Keep this if 'user' is used elsewhere, like for setting localStorage flags on close
 
+  // REMOVE OR COMMENT OUT THIS ENTIRE useEffect BLOCK TO DISABLE AUTOMATIC POP-UP
+  /*
   useEffect(() => {
     if (user) {
       // Check if user has seen welcome before using user ID
@@ -31,27 +33,30 @@ export const useWelcomeModal = () => {
         setShowWelcome(true);
       }
     }
-  }, [user]);
+  }, [user]); // This dependency array ensures it runs when user changes
+  */
 
   const closeWelcome = () => {
     setShowWelcome(false);
+    // It's good practice to still mark as seen when manually closed,
+    // so it doesn't pop up again if the user triggers it manually, closes it, and then re-triggers.
     if (user) {
-      // Mark as seen for this specific user
       localStorage.setItem(`welcome_seen_${user.id}`, 'true');
     } else {
-      // Mark as seen for guest users
       localStorage.setItem('guest_welcome_seen', 'true');
     }
   };
 
   const showWelcomeManually = () => {
-    setIsFirstTime(false);
+    // When manually triggered, you probably don't want it to show as "first time user"
+    // unless you explicitly re-implement that logic here based on a specific scenario.
+    setIsFirstTime(false); 
     setShowWelcome(true);
   };
 
   return {
     showWelcome,
-    isFirstTime,
+    isFirstTime, // Keep this, as your WelcomeModal component still uses it for conditional text
     closeWelcome,
     showWelcomeManually
   };
