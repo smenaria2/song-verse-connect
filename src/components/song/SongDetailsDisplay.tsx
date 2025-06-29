@@ -31,7 +31,7 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
 
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-top-4 duration-1000">
-      <CardContent className="p-8">
+      <CardContent className="p-4 md:p-8">
         {/* Enhanced meta tags for social sharing */}
         <div style={{ display: 'none' }}>
           <meta property="og:url" content={shareMetadata.url} />
@@ -48,7 +48,7 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
           <meta name="twitter:image" content={shareMetadata.image} />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
           {/* YouTube Player */}
           <div className="space-y-4">
             <div className="aspect-video rounded-lg overflow-hidden">
@@ -66,55 +66,65 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
           </div>
 
           {/* Song Info */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <div>
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold text-white flex-1">{song.title}</h1>
-                <ShareButton
-                  url={shareMetadata.url}
-                  title={shareMetadata.title}
-                  description={shareMetadata.description}
-                  className="ml-4 border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
-                />
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-3 md:mb-2 space-y-3 md:space-y-0">
+                {/* Mobile: Title takes full width, smaller font */}
+                <h1 className="text-xl md:text-3xl font-bold text-white leading-tight md:flex-1 break-words">
+                  {song.title}
+                </h1>
+                {/* Mobile: Share button below title */}
+                <div className="md:ml-4 flex justify-end">
+                  <ShareButton
+                    url={shareMetadata.url}
+                    title={shareMetadata.title}
+                    description={shareMetadata.description}
+                    image={shareMetadata.image}
+                    className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
+                    size="sm"
+                  />
+                </div>
               </div>
-              <p className="text-xl text-white/80 mb-4">{song.artist}</p>
+              <p className="text-lg md:text-xl text-white/80 mb-3 md:mb-4 break-words">{song.artist}</p>
               
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="secondary" className="bg-orange-600/20 text-orange-300 border-orange-600/30">
+              <div className="flex flex-wrap gap-2 mb-3 md:mb-4">
+                <Badge variant="secondary" className="bg-orange-600/20 text-orange-300 border-orange-600/30 text-xs">
                   {formatGenre(song.genre)}
                 </Badge>
                 {song.duration && (
-                  <div className="flex items-center text-white/60 text-sm">
-                    <Clock className="h-4 w-4 mr-1" />
+                  <div className="flex items-center text-white/60 text-xs md:text-sm">
+                    <Clock className="h-3 w-3 md:h-4 md:w-4 mr-1" />
                     {song.duration}
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center space-x-4 mb-4">
+              <div className="flex items-center space-x-2 md:space-x-4 mb-3 md:mb-4">
                 <div className="flex items-center space-x-1">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-5 w-5 ${
+                      className={`h-4 w-4 md:h-5 md:w-5 ${
                         i < Math.floor(song.average_rating)
                           ? "text-yellow-400 fill-current"
                           : "text-gray-400"
                       }`}
                     />
                   ))}
-                  <span className="text-white/70 ml-2">
+                  <span className="text-white/70 ml-2 text-sm md:text-base">
                     {song.average_rating.toFixed(1)} ({song.review_count} reviews)
                   </span>
                 </div>
               </div>
 
-              <p className="text-white/60">
-                Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
-              </p>
-              <p className="text-white/60 text-sm">
-                {formatDate(song.created_at)}
-              </p>
+              <div className="text-sm md:text-base space-y-1">
+                <p className="text-white/60">
+                  Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
+                </p>
+                <p className="text-white/60 text-xs md:text-sm">
+                  {formatDate(song.created_at)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
