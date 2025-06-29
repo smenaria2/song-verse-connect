@@ -3,12 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Save, X, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
+import { Edit, Save, Calendar, MapPin, Link as LinkIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 import ProfileButton, { CancelButton } from "@/components/common/ProfileButton";
+import ShareButton from "@/components/common/ShareButton";
 import { formatDate } from "@/utils/formatters/date";
 import { UserProfile } from "@/types/app";
 
@@ -61,6 +62,10 @@ const ProfileHeader = ({ profile, setProfile }: ProfileHeaderProps) => {
     }
   };
 
+  const shareUrl = `${window.location.origin}/profile/${profile.id}`;
+  const shareTitle = `${profile.username}'s Profile`;
+  const shareDescription = `Check out ${profile.username}'s music profile on Song Monk!`;
+
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md mb-8 animate-in slide-in-from-top-4 card-responsive">
       <CardContent className="p-4 md:p-8">
@@ -108,12 +113,20 @@ const ProfileHeader = ({ profile, setProfile }: ProfileHeaderProps) => {
                     />
                   </>
                 ) : (
-                  <ProfileButton
-                    onClick={() => setIsEditing(true)}
-                    icon={Edit}
-                  >
-                    Edit Profile
-                  </ProfileButton>
+                  <>
+                    <ShareButton
+                      url={shareUrl}
+                      title={shareTitle}
+                      description={shareDescription}
+                      className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
+                    />
+                    <ProfileButton
+                      onClick={() => setIsEditing(true)}
+                      icon={Edit}
+                    >
+                      Edit Profile
+                    </ProfileButton>
+                  </>
                 )}
               </div>
             </div>

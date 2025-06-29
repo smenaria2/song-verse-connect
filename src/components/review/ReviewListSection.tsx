@@ -8,6 +8,7 @@ import { Star, MessageCircle, Loader2, ThumbsUp, Pencil, Trash2, Save, X } from 
 import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewInteractions from "@/components/ReviewInteractions";
+import ShareButton from "@/components/common/ShareButton";
 import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
 import { formatDate } from "@/utils/formatters/date";
 
@@ -63,6 +64,10 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
         console.error('Failed to delete review:', error);
       }
     }
+  };
+
+  const getReviewShareUrl = (reviewId: string) => {
+    return `${window.location.origin}/song/${songId}#review-${reviewId}`;
   };
 
   return (
@@ -135,6 +140,13 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                           )}
                         </div>
                       </div>
+                      <ShareButton
+                        url={getReviewShareUrl(review.id)}
+                        title={`${review.reviewer_username}'s Review`}
+                        description={`Check out this review by ${review.reviewer_username}`}
+                        variant="ghost"
+                        className="text-white/60 hover:text-purple-400 hover:bg-white/10"
+                      />
                     </div>
 
                     {review.review_text && (
@@ -248,6 +260,13 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
+                            <ShareButton
+                              url={getReviewShareUrl(userReview.id)}
+                              title="My Review"
+                              description={`Check out my review`}
+                              variant="ghost"
+                              className="text-white/60 hover:text-purple-400 hover:bg-white/10"
+                            />
                             <Button
                               onClick={() => startEditing(userReview)}
                               variant="ghost"

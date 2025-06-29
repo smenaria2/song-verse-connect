@@ -4,12 +4,17 @@ import { Star, Clock } from "lucide-react";
 import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
+import ShareButton from "@/components/common/ShareButton";
 
 interface SongDetailsDisplayProps {
   song: Song;
 }
 
 const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
+  const shareUrl = `${window.location.origin}/song/${song.id}`;
+  const shareTitle = `${song.title} by ${song.artist}`;
+  const shareDescription = `Check out this amazing song on Song Monk! Rated ${song.average_rating.toFixed(1)}/5 by ${song.review_count} reviewers.`;
+
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-top-4 duration-1000">
       <CardContent className="p-8">
@@ -33,7 +38,15 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
           {/* Song Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-white mb-2">{song.title}</h1>
+              <div className="flex items-start justify-between mb-2">
+                <h1 className="text-3xl font-bold text-white flex-1">{song.title}</h1>
+                <ShareButton
+                  url={shareUrl}
+                  title={shareTitle}
+                  description={shareDescription}
+                  className="ml-4 border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
+                />
+              </div>
               <p className="text-xl text-white/80 mb-4">{song.artist}</p>
               
               <div className="flex flex-wrap gap-2 mb-4">

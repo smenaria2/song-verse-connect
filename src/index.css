@@ -253,6 +253,28 @@
     overflow-wrap: break-word;
     hyphens: auto;
   }
+
+  /* Line clamp utilities for better mobile text display */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* Additional mobile-specific fixes */
@@ -289,6 +311,27 @@
   nav {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Enhanced mobile review cards */
+  .recent-review-card {
+    min-height: 280px;
+    padding: 1rem;
+  }
+
+  .recent-review-card .avatar {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .recent-review-card .rating-stars {
+    font-size: 1.25rem;
+  }
+
+  .recent-review-card .review-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0.75rem 0;
   }
 }
 

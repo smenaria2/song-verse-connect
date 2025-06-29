@@ -1,10 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ListMusic, Play, Share } from "lucide-react";
+import { ListMusic, Play } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { usePlaylistWithSongs } from "@/hooks/usePlaylists";
-import { useToast } from "@/hooks/use-toast";
+import ShareButton from "@/components/common/ShareButton";
 import { Playlist } from "@/types/app";
 
 interface PlaylistCardProps {
@@ -15,7 +15,6 @@ interface PlaylistCardProps {
 const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
   const { data: playlistWithSongs } = usePlaylistWithSongs(playlist.id);
   const { playPause } = useAudioPlayer();
-  const { toast } = useToast();
 
   const handlePlayPlaylist = () => {
     if (playlistWithSongs?.songs?.length) {
@@ -29,22 +28,9 @@ const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
     }
   };
 
-  const handleSharePlaylist = () => {
-    if (playlist.is_public) {
-      const shareUrl = `${window.location.origin}/playlist/${playlist.id}`;
-      navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Link Copied!",
-        description: "Playlist link copied to clipboard"
-      });
-    } else {
-      toast({
-        title: "Private Playlist",
-        description: "Make playlist public to share",
-        variant: "destructive"
-      });
-    }
-  };
+  const shareUrl = `${window.location.origin}/playlist/${playlist.id}`;
+  const shareTitle = playlist.name;
+  const shareDescription = `Check out this ${playlist.is_public ? 'public' : ''} playlist: ${playlist.name}${playlist.description ? ` - ${playlist.description}` : ''}`;
 
   return (
     <Card 
@@ -90,14 +76,12 @@ const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
                 </Button>
               )}
               {playlist.is_public && (
-                <Button
-                  onClick={handleSharePlaylist}
-                  variant="outline"
-                  size="sm"
+                <ShareButton
+                  url={shareUrl}
+                  title={shareTitle}
+                  description={shareDescription}
                   className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
-                >
-                  <Share className="h-4 w-4" />
-                </Button>
+                />
               )}
             </div>
             <div className="text-right text-white/60 text-sm ml-4">
