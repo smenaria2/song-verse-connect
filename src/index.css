@@ -206,6 +206,24 @@
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
     }
+
+    /* Mobile review text wrapping */
+    .review-text {
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+      max-width: 100%;
+    }
+
+    /* Mobile review cards */
+    .review-card {
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .review-card * {
+      max-width: 100%;
+    }
   }
 
   /* Fix for very small screens */
@@ -233,6 +251,12 @@
       min-height: 28px;
       padding: 0.125rem 0.375rem;
       font-size: 0.75rem;
+    }
+
+    /* Ensure text doesn't overflow on very small screens */
+    .review-text, .comment-text {
+      font-size: 0.75rem;
+      line-height: 1.4;
     }
   }
 }
@@ -312,6 +336,15 @@
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Mobile-specific text wrapping */
+  .mobile-text-wrap {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
     overflow: hidden;
   }
 }

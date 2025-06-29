@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, MessageCircle, Loader2, ThumbsUp, Pencil, Trash2, Save, X } from "lucide-react";
+import { Star, MessageCircle, Loader2, ThumbsUp, Pencil, Trash2, Save, X, Share } from "lucide-react";
 import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { useAuth } from "@/hooks/useAuth";
 import ReviewInteractions from "@/components/ReviewInteractions";
@@ -73,10 +73,10 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-right-4 duration-1000 delay-400">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-white">Reviews ({reviews.length})</CardTitle>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+          <CardTitle className="text-white text-lg md:text-xl">Reviews ({reviews.length})</CardTitle>
           <Select value={sortBy} onValueChange={(value: 'newest' | 'helpful') => setSortBy(value)}>
-            <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+            <SelectTrigger className="w-full md:w-40 bg-white/10 border-white/20 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-700">
@@ -90,7 +90,7 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
           </Select>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 max-w-full overflow-hidden">
         {reviewsLoading ? (
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 text-orange-400 mx-auto animate-spin" />
@@ -103,27 +103,27 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
               <div 
                 key={review.id} 
                 id={`review-${review.id}`}
-                className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4 scroll-mt-24 transition-all duration-300"
+                className="border-b border-white/10 pb-6 last:border-b-0 animate-in slide-in-from-bottom-4 scroll-mt-24 transition-all duration-300 max-w-full overflow-hidden"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="flex items-start space-x-4">
-                  <Avatar className="w-10 h-10">
+                <div className="flex items-start space-x-3 max-w-full">
+                  <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
                     <AvatarImage src={review.reviewer_avatar} />
-                    <AvatarFallback className={`text-white ${getRandomAvatarColor(review.reviewer_id)}`}>
+                    <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(review.reviewer_id)}`}>
                       {getUserInitials(review.reviewer_username)}
                     </AvatarFallback>
                   </Avatar>
                   
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-white font-medium">{review.reviewer_username}</h4>
-                        <div className="flex items-center space-x-2">
+                  <div className="flex-1 space-y-3 min-w-0 max-w-full overflow-hidden">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-white font-medium text-sm md:text-base truncate">{review.reviewer_username}</h4>
+                        <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-2">
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
                               <Star
                                 key={i}
-                                className={`h-4 w-4 ${
+                                className={`h-3 w-3 md:h-4 md:w-4 ${
                                   i < review.rating
                                     ? "text-yellow-400 fill-current"
                                     : "text-gray-400"
@@ -131,26 +131,37 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                               />
                             ))}
                           </div>
-                          <span className="text-white/60 text-sm">{formatDate(review.created_at)}</span>
+                          <span className="text-white/60 text-xs md:text-sm">{formatDate(review.created_at)}</span>
                           {sortBy === 'helpful' && review.upvote_count > 0 && (
-                            <div className="flex items-center space-x-1 text-purple-400 text-sm">
+                            <div className="flex items-center space-x-1 text-purple-400 text-xs">
                               <ThumbsUp className="h-3 w-3 fill-current" />
                               <span>{review.upvote_count}</span>
                             </div>
                           )}
                         </div>
                       </div>
-                      <ShareButton
-                        url={getReviewShareUrl(review.id)}
-                        title={`${review.reviewer_username}'s Review`}
-                        description={`Check out this review by ${review.reviewer_username}`}
-                        variant="ghost"
-                        className="text-white/60 hover:text-purple-400 hover:bg-white/10"
-                      />
+                      <div className="flex-shrink-0">
+                        <Button
+                          onClick={() => {
+                            const shareUrl = getReviewShareUrl(review.id);
+                            navigator.clipboard.writeText(shareUrl);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-white/40 hover:text-purple-400 hover:bg-purple-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
+                          title="Share review"
+                        >
+                          <Share className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
 
                     {review.review_text && (
-                      <p className="text-white/80">{review.review_text}</p>
+                      <div className="max-w-full overflow-hidden">
+                        <p className="text-white/80 text-sm md:text-base break-words leading-relaxed whitespace-pre-wrap">
+                          {review.review_text}
+                        </p>
+                      </div>
                     )}
 
                     {/* Review Interactions */}
@@ -165,24 +176,24 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
 
             {/* Show user's own review last with edit/delete options */}
             {userReview && (
-              <div className="border-t border-purple-500/30 pt-6" id={`review-${userReview.id}`}>
-                <div className="flex items-start space-x-4">
-                  <Avatar className="w-10 h-10">
+              <div className="border-t border-purple-500/30 pt-6 max-w-full overflow-hidden" id={`review-${userReview.id}`}>
+                <div className="flex items-start space-x-3 max-w-full">
+                  <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
                     <AvatarImage src={userReview.reviewer_avatar} />
-                    <AvatarFallback className={`text-white ${getRandomAvatarColor(userReview.reviewer_id)}`}>
+                    <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(userReview.reviewer_id)}`}>
                       {getUserInitials(userReview.reviewer_username)}
                     </AvatarFallback>
                   </Avatar>
                   
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-3 min-w-0 max-w-full overflow-hidden">
                     {editingReview === userReview.id ? (
                       // Edit mode
-                      <div className="space-y-4">
+                      <div className="space-y-4 max-w-full">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-purple-300 font-medium">Edit Your Review</h4>
+                          <h4 className="text-purple-300 font-medium text-sm md:text-base">Edit Your Review</h4>
                         </div>
                         
-                        <div>
+                        <div className="space-y-3">
                           <div className="flex items-center space-x-1 mb-2">
                             {[1, 2, 3, 4, 5].map((rating) => (
                               <button
@@ -191,7 +202,7 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                                 className="p-1"
                               >
                                 <Star
-                                  className={`h-5 w-5 ${
+                                  className={`h-4 w-4 md:h-5 md:w-5 ${
                                     rating <= editRating
                                       ? "text-yellow-400 fill-current"
                                       : "text-gray-400"
@@ -203,46 +214,48 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                           <Textarea
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder-white/60"
+                            className="bg-white/10 border-white/20 text-white placeholder-white/60 text-sm w-full"
                             placeholder="Update your review..."
                             rows={3}
                           />
                         </div>
                         
-                        <div className="flex space-x-2">
+                        <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
                           <Button
                             onClick={() => saveEdit(userReview.id)}
                             disabled={submitReviewMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                            size="sm"
                           >
-                            <Save className="h-4 w-4 mr-2" />
+                            <Save className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                             Save Changes
                           </Button>
                           <Button
                             onClick={cancelEditing}
                             variant="outline"
-                            className="border-white/20 text-white hover:bg-white/10"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10 text-sm"
                           >
-                            <X className="h-4 w-4 mr-2" />
+                            <X className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                             Cancel
                           </Button>
                         </div>
                       </div>
                     ) : (
                       // View mode
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h4 className="text-purple-300 font-medium">{userReview.reviewer_username}</h4>
-                              <span className="text-purple-400 text-xs bg-purple-600/20 px-2 py-1 rounded">Your Review</span>
+                      <div className="max-w-full overflow-hidden">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="text-purple-300 font-medium text-sm md:text-base truncate">{userReview.reviewer_username}</h4>
+                              <span className="text-purple-400 text-xs bg-purple-600/20 px-2 py-1 rounded flex-shrink-0">Your Review</span>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-2">
                               <div className="flex items-center space-x-1">
                                 {[...Array(5)].map((_, i) => (
                                   <Star
                                     key={i}
-                                    className={`h-4 w-4 ${
+                                    className={`h-3 w-3 md:h-4 md:w-4 ${
                                       i < userReview.rating
                                         ? "text-yellow-400 fill-current"
                                         : "text-gray-400"
@@ -250,47 +263,56 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                                   />
                                 ))}
                               </div>
-                              <span className="text-white/60 text-sm">{formatDate(userReview.created_at)}</span>
+                              <span className="text-white/60 text-xs md:text-sm">{formatDate(userReview.created_at)}</span>
                               {userReview.upvote_count > 0 && (
-                                <div className="flex items-center space-x-1 text-purple-400 text-sm">
+                                <div className="flex items-center space-x-1 text-purple-400 text-xs">
                                   <ThumbsUp className="h-3 w-3 fill-current" />
                                   <span>{userReview.upvote_count}</span>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <ShareButton
-                              url={getReviewShareUrl(userReview.id)}
-                              title="My Review"
-                              description={`Check out my review`}
+                          <div className="flex items-center space-x-1 flex-shrink-0">
+                            <Button
+                              onClick={() => {
+                                const shareUrl = getReviewShareUrl(userReview.id);
+                                navigator.clipboard.writeText(shareUrl);
+                              }}
                               variant="ghost"
-                              className="text-white/60 hover:text-purple-400 hover:bg-white/10"
-                            />
+                              size="sm"
+                              className="text-white/40 hover:text-purple-400 hover:bg-purple-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
+                              title="Share review"
+                            >
+                              <Share className="h-3 w-3" />
+                            </Button>
                             <Button
                               onClick={() => startEditing(userReview)}
                               variant="ghost"
                               size="sm"
-                              className="text-white/60 hover:text-purple-400 hover:bg-white/10"
+                              className="text-white/40 hover:text-purple-400 hover:bg-purple-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
                               title="Edit review"
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Pencil className="h-3 w-3" />
                             </Button>
                             <Button
                               onClick={() => handleDeleteReview(userReview.id)}
                               variant="ghost"
                               size="sm"
-                              className="text-white/60 hover:text-red-400 hover:bg-white/10"
+                              className="text-white/40 hover:text-red-400 hover:bg-red-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
                               title="Delete review"
                               disabled={deleteReview.isPending}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
 
                         {userReview.review_text && (
-                          <p className="text-white/80 mt-3">{userReview.review_text}</p>
+                          <div className="mt-3 max-w-full overflow-hidden">
+                            <p className="text-white/80 text-sm md:text-base break-words leading-relaxed whitespace-pre-wrap">
+                              {userReview.review_text}
+                            </p>
+                          </div>
                         )}
 
                         {/* Review Interactions for user's own review */}

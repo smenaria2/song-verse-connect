@@ -8,19 +8,23 @@ export const useWelcomeModal = () => {
 
   useEffect(() => {
     if (user) {
-      // Check if user has seen welcome before
-      const hasSeenWelcome = localStorage.getItem(`welcome_seen_${user.id}`);
+      // Check if user has seen welcome before using user ID
+      const welcomeKey = `welcome_seen_${user.id}`;
+      const hasSeenWelcome = localStorage.getItem(welcomeKey);
+      
+      // Check if user is new (created within last 24 hours)
       const userCreatedAt = new Date(user.created_at || '');
       const now = new Date();
       const timeDiff = now.getTime() - userCreatedAt.getTime();
       const isNewUser = timeDiff < 24 * 60 * 60 * 1000; // Less than 24 hours old
 
+      // Only show welcome if user hasn't seen it before
       if (!hasSeenWelcome) {
         setIsFirstTime(isNewUser);
         setShowWelcome(true);
       }
     } else {
-      // Show welcome for unauthenticated users if they haven't seen it
+      // For unauthenticated users, check if they've seen the guest welcome
       const hasSeenGuestWelcome = localStorage.getItem('guest_welcome_seen');
       if (!hasSeenGuestWelcome) {
         setIsFirstTime(false);
@@ -32,8 +36,10 @@ export const useWelcomeModal = () => {
   const closeWelcome = () => {
     setShowWelcome(false);
     if (user) {
+      // Mark as seen for this specific user
       localStorage.setItem(`welcome_seen_${user.id}`, 'true');
     } else {
+      // Mark as seen for guest users
       localStorage.setItem('guest_welcome_seen', 'true');
     }
   };

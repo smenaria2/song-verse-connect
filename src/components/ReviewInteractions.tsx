@@ -111,37 +111,39 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
 
   return (
     <div className="mt-3 space-y-2">
-      {/* Interaction buttons - Mobile optimized */}
-      <div className="flex items-center space-x-2 md:space-x-4 text-sm">
+      {/* Interaction buttons - Transparent without text */}
+      <div className="flex items-center space-x-3 text-sm">
         <Button
           onClick={handleToggleUpvote}
           variant="ghost"
           size="sm"
-          className={`flex items-center space-x-1 px-2 py-1 h-8 md:h-auto md:px-3 md:py-2 ${
+          className={`flex items-center space-x-1 px-2 py-1 h-8 rounded-md transition-all duration-200 ${
             hasUserUpvoted 
-              ? 'text-purple-400 hover:text-purple-300' 
-              : 'text-white/60 hover:text-purple-400'
-          } hover:bg-white/10 rounded-md`}
+              ? 'text-purple-400 bg-purple-400/10 hover:bg-purple-400/20' 
+              : 'text-white/60 bg-transparent hover:bg-white/10 hover:text-purple-400'
+          }`}
           disabled={!user}
+          title={`${hasUserUpvoted ? 'Remove upvote' : 'Upvote'} (${upvotes.length})`}
         >
-          <ThumbsUp className={`h-3 w-3 md:h-4 md:w-4 ${hasUserUpvoted ? 'fill-current' : ''}`} />
-          <span className="text-xs md:text-sm">{upvotes.length}</span>
+          <ThumbsUp className={`h-4 w-4 ${hasUserUpvoted ? 'fill-current' : ''}`} />
+          <span className="text-xs font-medium">{upvotes.length}</span>
         </Button>
 
         <Button
           onClick={() => setShowComments(!showComments)}
           variant="ghost"
           size="sm"
-          className="flex items-center space-x-1 text-white/60 hover:text-purple-400 hover:bg-white/10 px-2 py-1 h-8 md:h-auto md:px-3 md:py-2 rounded-md"
+          className="flex items-center space-x-1 px-2 py-1 h-8 rounded-md transition-all duration-200 text-white/60 bg-transparent hover:bg-white/10 hover:text-purple-400"
+          title={`${showComments ? 'Hide' : 'Show'} comments (${comments.length})`}
         >
-          <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
-          <span className="text-xs md:text-sm">{comments.length}</span>
+          <MessageCircle className="h-4 w-4" />
+          <span className="text-xs font-medium">{comments.length}</span>
         </Button>
       </div>
 
-      {/* Comments section - Mobile optimized */}
+      {/* Comments section - Improved mobile layout */}
       {showComments && (
-        <div className="bg-white/5 rounded-lg p-3 space-y-3 border border-white/10">
+        <div className="bg-white/5 rounded-lg p-3 space-y-3 border border-white/10 max-w-full overflow-hidden">
           {/* Add comment form */}
           {user && (
             <div className="space-y-2">
@@ -149,13 +151,13 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="bg-white/10 border-white/20 text-white placeholder-white/60 text-sm resize-none min-h-[60px] md:min-h-[80px]"
+                className="bg-white/10 border-white/20 text-white placeholder-white/60 text-sm resize-none min-h-[60px] w-full"
                 rows={2}
                 maxLength={5000}
               />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-white/50">
-                  {newComment.length}/5000 characters
+                  {newComment.length}/5000
                 </span>
                 <Button
                   onClick={handleAddComment}
@@ -164,32 +166,32 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
                   className="bg-purple-600 hover:bg-purple-700 text-white h-8 px-3 text-xs"
                 >
                   <Send className="h-3 w-3 mr-1" />
-                  Comment
+                  Post
                 </Button>
               </div>
             </div>
           )}
 
           {/* Comments list */}
-          <div className="space-y-3">
+          <div className="space-y-3 max-w-full">
             {comments.length === 0 ? (
               <p className="text-white/50 text-sm text-center py-2">
                 No comments yet. {user ? 'Be the first to comment!' : 'Sign in to add a comment.'}
               </p>
             ) : (
               comments.map((comment) => (
-                <div key={comment.id} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <div className="flex items-start space-x-2 md:space-x-3">
-                    <Avatar className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0">
+                <div key={comment.id} className="bg-white/5 rounded-lg p-3 border border-white/10 max-w-full overflow-hidden">
+                  <div className="flex items-start space-x-2">
+                    <Avatar className="w-6 h-6 flex-shrink-0">
                       <AvatarImage src={comment.commenter_avatar} />
                       <AvatarFallback className={`text-xs text-white ${getRandomAvatarColor(comment.commenter_id)}`}>
                         {getUserInitials(comment.commenter_username)}
                       </AvatarFallback>
                     </Avatar>
                     
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 max-w-full">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-2 min-w-0">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1">
                           <span className="text-white text-sm font-medium truncate">
                             {comment.commenter_username}
                           </span>
@@ -198,14 +200,14 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
                           </span>
                         </div>
                         
-                        {/* Comment actions - Mobile optimized */}
+                        {/* Comment actions - Transparent buttons */}
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           {user && user.id === comment.commenter_id && (
                             <Button
                               onClick={() => handleDeleteComment(comment.id)}
                               variant="ghost"
                               size="sm"
-                              className="text-white/40 hover:text-red-400 hover:bg-white/10 p-1 h-6 w-6"
+                              className="text-white/40 hover:text-red-400 hover:bg-red-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
                               title="Delete comment"
                             >
                               <Trash2 className="h-3 w-3" />
@@ -218,7 +220,7 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-white/40 hover:text-orange-400 hover:bg-white/10 p-1 h-6 w-6"
+                                  className="text-white/40 hover:text-orange-400 hover:bg-orange-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
                                   title="Report comment"
                                 >
                                   <Flag className="h-3 w-3" />
@@ -268,9 +270,11 @@ const ReviewInteractions = ({ reviewId, reviewAuthorId }: ReviewInteractionsProp
                         </div>
                       </div>
                       
-                      <p className="text-white/80 text-sm break-words leading-relaxed">
-                        {comment.comment_text}
-                      </p>
+                      <div className="max-w-full overflow-hidden">
+                        <p className="text-white/80 text-sm break-words leading-relaxed whitespace-pre-wrap">
+                          {comment.comment_text}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
