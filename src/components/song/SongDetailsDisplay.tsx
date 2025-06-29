@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, Clock, Play } from "lucide-react";
 import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import ShareButton from "@/components/common/ShareButton";
 import { getYouTubeThumbnail } from "@/utils/youtube/helpers";
 
@@ -12,6 +14,8 @@ interface SongDetailsDisplayProps {
 }
 
 const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
+  const { playPause } = useAudioPlayer();
+  
   const shareUrl = `${window.location.origin}/song/${song.id}`;
   const shareTitle = `${song.title} by ${song.artist}`;
   const shareDescription = `Check out this amazing song on Song Monk! Rated ${song.average_rating.toFixed(1)}/5 by ${song.review_count} reviewers. ${song.review_count > 0 ? 'Join the conversation and share your thoughts!' : 'Be the first to review this song!'}`;
@@ -27,6 +31,15 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
     artist: song.artist,
     duration: song.duration,
     genre: formatGenre(song.genre)
+  };
+
+  const handlePlaySong = () => {
+    playPause({
+      id: song.id,
+      youtubeId: song.youtube_id,
+      title: song.title,
+      artist: song.artist
+    });
   };
 
   return (
@@ -115,6 +128,18 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                     {song.average_rating.toFixed(1)} ({song.review_count} reviews)
                   </span>
                 </div>
+              </div>
+
+              {/* Play Button */}
+              <div className="mb-4">
+                <Button
+                  onClick={handlePlaySong}
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                  size="lg"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Play in Mini Player
+                </Button>
               </div>
 
               <div className="text-sm md:text-base space-y-1">
