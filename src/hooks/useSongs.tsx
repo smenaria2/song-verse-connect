@@ -38,7 +38,10 @@ export const useSongs = (searchTerm = '', selectedGenre = 'All') => {
     getNextPageParam: (lastPage, pages) => {
       return lastPage.length === 20 ? pages.length : undefined;
     },
-    initialPageParam: 0
+    initialPageParam: 0,
+    // Remove the enabled condition so songs load for everyone
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
@@ -78,7 +81,9 @@ export const useSongsStats = () => {
         total_reviews: totalReviews || 0,
         average_rating: avgRating
       } as SongsStats;
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 

@@ -6,14 +6,12 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSongs, useSongsStats } from "@/hooks/useSongs";
 import { useReviews } from "@/hooks/useReviews";
-import { useWelcomeModal } from "@/hooks/useWelcomeModal";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/home/HeroSection";
 import SearchAndFilter from "@/components/home/SearchAndFilter";
 import StatsSection from "@/components/home/StatsSection";
 import RecentReviewsCarousel from "@/components/home/RecentReviewsCarousel";
 import SongsGrid from "@/components/home/SongsGrid";
-import WelcomeModal from "@/components/WelcomeModal";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,19 +20,11 @@ const Index = () => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useSongs(searchTerm, genreFilter);
   const { data: stats, isLoading: isLoadingStats } = useSongsStats();
   const { data: recentReviews = [], isLoading: isLoadingReviews } = useReviews();
-  const { showWelcome, isFirstTime, closeWelcome, showWelcomeManually } = useWelcomeModal();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 w-full max-w-full overflow-x-hidden">
       {/* Navigation - Always show, but content changes based on auth */}
       <Navigation />
-      
-      {/* Welcome Modal */}
-      <WelcomeModal 
-        isOpen={showWelcome} 
-        onClose={closeWelcome} 
-        isFirstTimeUser={isFirstTime}
-      />
       
       {/* Unauthenticated User Welcome Section */}
       {!user && (
@@ -61,14 +51,6 @@ const Index = () => {
                     Get Started
                   </Button>
                 </Link>
-                <Button 
-                  onClick={showWelcomeManually}
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
-                >
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  How it Works
-                </Button>
               </div>
               <p className="text-white/60 text-sm mt-4">
                 Sign up to submit songs, write reviews, and create playlists
@@ -82,21 +64,6 @@ const Index = () => {
         {/* Show hero section only for authenticated users */}
         {user && <HeroSection />}
         
-        {/* Help button for authenticated users */}
-        {user && (
-          <div className="flex justify-end mb-4">
-            <Button 
-              onClick={showWelcomeManually}
-              variant="outline"
-              size="sm"
-              className="border-white/20 text-white/70 hover:text-white hover:bg-white/10"
-            >
-              <HelpCircle className="h-4 w-4 mr-2" />
-              How it Works
-            </Button>
-          </div>
-        )}
-        
         <SearchAndFilter 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -104,7 +71,10 @@ const Index = () => {
           setGenreFilter={setGenreFilter}
         />
 
-        <RecentReviewsCarousel recentReviews={recentReviews} />
+        {/* Show recent reviews only if there are any */}
+        {recentReviews.length > 0 && (
+          <RecentReviewsCarousel recentReviews={recentReviews} />
+        )}
 
         <SongsGrid 
           data={data}

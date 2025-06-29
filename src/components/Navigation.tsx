@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Music, Home, Upload, LogOut, Menu, X, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import PlaylistViewer from "@/components/PlaylistViewer";
 import { useState } from "react";
@@ -13,6 +13,21 @@ const Navigation = () => {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      console.log('Navigation: Starting sign out...');
+      await signOut();
+      console.log('Navigation: Sign out completed');
+      // Navigate to home page after sign out
+      navigate('/');
+      // Close mobile menu if open
+      setMobileMenuOpen(false);
+    } catch (error) {
+      console.error('Navigation: Sign out error:', error);
+    }
+  };
 
   return (
     <header className="bg-black/20 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
@@ -40,12 +55,13 @@ const Navigation = () => {
                     }
                   />
                   <NavLink to="/profile" icon={User}>Profile</NavLink>
-                  <NavButton
-                    onClick={signOut}
-                    icon={LogOut}
+                  <Button
+                    onClick={handleSignOut}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm border-0 bg-transparent"
                   >
-                    Sign Out
-                  </NavButton>
+                    <LogOut className="h-4 w-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Sign Out</span>
+                  </Button>
                 </>
               ) : (
                 <>
@@ -90,12 +106,13 @@ const Navigation = () => {
                   </div>
                   <NavLink to="/profile" icon={User} onClick={() => setMobileMenuOpen(false)}>Profile</NavLink>
                   <div className="px-3 py-2">
-                    <NavButton
-                      onClick={signOut}
-                      icon={LogOut}
+                    <Button
+                      onClick={handleSignOut}
+                      className="flex items-center justify-center space-x-2 px-4 py-2 h-10 rounded-lg transition-all duration-200 font-medium text-sm text-white/80 hover:text-white hover:bg-purple-600/20 hover:shadow-sm border-0 bg-transparent w-full"
                     >
-                      Sign Out
-                    </NavButton>
+                      <LogOut className="h-4 w-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">Sign Out</span>
+                    </Button>
                   </div>
                 </>
               ) : (
