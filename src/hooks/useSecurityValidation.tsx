@@ -1,6 +1,5 @@
-
 import { useToast } from '@/components/ui/use-toast';
-import { validateYouTubeUrl, validateUsername, validateWebsiteUrl, validateReviewText, sanitizeText } from '@/utils/validation';
+import { validateYouTubeUrl, validateUsername, validateWebsiteUrl, validateImageUrl, validateReviewText, sanitizeText } from '@/utils/validation';
 
 export const useSecurityValidation = () => {
   const { toast } = useToast();
@@ -9,6 +8,7 @@ export const useSecurityValidation = () => {
     username?: string;
     bio?: string;
     website?: string;
+    avatar_url?: string;
   }) => {
     const errors: string[] = [];
 
@@ -21,6 +21,10 @@ export const useSecurityValidation = () => {
 
     if (profileData.website && !validateWebsiteUrl(profileData.website)) {
       errors.push('Website URL must be a valid HTTP or HTTPS URL');
+    }
+
+    if (profileData.avatar_url && !validateImageUrl(profileData.avatar_url)) {
+      errors.push('Avatar URL must be a valid HTTP or HTTPS URL');
     }
 
     if (profileData.bio && profileData.bio.length > 500) {
@@ -39,6 +43,7 @@ export const useSecurityValidation = () => {
     return {
       ...profileData,
       bio: profileData.bio ? sanitizeText(profileData.bio) : profileData.bio,
+      username: profileData.username ? sanitizeText(profileData.username) : profileData.username,
     };
   };
 

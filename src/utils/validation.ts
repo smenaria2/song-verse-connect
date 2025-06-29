@@ -12,9 +12,9 @@ export { extractYouTubeId };
 export const sanitizeText = (text: string): string => {
   // Basic HTML sanitization
   return text
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
     .replace(/'/g, '&#39;')
     .trim();
 };
@@ -37,6 +37,20 @@ export const validateWebsiteUrl = (url: string): boolean => {
   try {
     const parsedUrl = new URL(url);
     return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+export const validateImageUrl = (url: string): boolean => {
+  if (!url) return true; // Optional field
+  try {
+    const parsedUrl = new URL(url);
+    const isValidProtocol = parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(parsedUrl.pathname);
+    
+    // Allow URLs without explicit extensions (many CDNs and services don't use them)
+    return isValidProtocol;
   } catch {
     return false;
   }
