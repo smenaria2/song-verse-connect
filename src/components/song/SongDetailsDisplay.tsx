@@ -130,15 +130,21 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                 </div>
               </div>
 
-              {/* Play Button */}
+              {/* Enhanced Play Button with better visibility */}
               <div className="mb-4">
                 <Button
                   onClick={handlePlaySong}
-                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold px-8 py-4 rounded-xl shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-300 border-2 border-purple-400/30 hover:border-purple-300/50 backdrop-blur-sm"
                   size="lg"
+                  style={{
+                    color: '#ffffff',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}
                 >
-                  <Play className="h-5 w-5 mr-2" />
-                  Play in Mini Player
+                  <Play className="h-6 w-6 mr-3 text-white drop-shadow-lg" />
+                  <span className="text-white font-bold tracking-wide">Play in Mini Player</span>
                 </Button>
               </div>
 
