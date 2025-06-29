@@ -6,6 +6,7 @@ interface ShareButtonProps {
   url: string;
   title: string;
   description?: string;
+  image?: string;
   variant?: "ghost" | "outline" | "default";
   size?: "sm" | "default" | "lg";
   className?: string;
@@ -15,6 +16,7 @@ const ShareButton = ({
   url, 
   title, 
   description = "Check this out!", 
+  image,
   variant = "outline", 
   size = "sm",
   className = ""
@@ -22,11 +24,22 @@ const ShareButton = ({
   const { toast } = useToast();
 
   const handleShare = async () => {
-    const shareData = {
+    const shareData: ShareData = {
       title,
       text: description,
       url
     };
+
+    // Add image to share data if supported and provided
+    if (image && 'files' in navigator && navigator.canShare) {
+      try {
+        // For platforms that support file sharing, we could potentially share images
+        // but for now, we'll include the image URL in the text for better compatibility
+        shareData.text = `${description}\n\nImage: ${image}`;
+      } catch (error) {
+        console.log('Image sharing not supported, falling back to text');
+      }
+    }
 
     // Try native sharing first (mobile)
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
@@ -39,17 +52,22 @@ const ShareButton = ({
       }
     }
 
-    // Fallback to clipboard
+    // Fallback to clipboard with enhanced content
     try {
-      await navigator.clipboard.writeText(url);
+      let shareText = `${title}\n\n${description}\n\n${url}`;
+      if (image) {
+        shareText += `\n\nThumbnail: ${image}`;
+      }
+      
+      await navigator.clipboard.writeText(shareText);
       toast({
         title: "Link Copied!",
-        description: "Link copied to clipboard"
+        description: "Link with details copied to clipboard"
       });
     } catch (error) {
       // Final fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = url;
+      textArea.value = `${title}\n\n${description}\n\n${url}`;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');

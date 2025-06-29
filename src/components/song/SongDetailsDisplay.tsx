@@ -5,6 +5,7 @@ import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
 import ShareButton from "@/components/common/ShareButton";
+import { getYouTubeThumbnail } from "@/utils/youtube/helpers";
 
 interface SongDetailsDisplayProps {
   song: Song;
@@ -13,11 +14,40 @@ interface SongDetailsDisplayProps {
 const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
   const shareUrl = `${window.location.origin}/song/${song.id}`;
   const shareTitle = `${song.title} by ${song.artist}`;
-  const shareDescription = `Check out this amazing song on Song Monk! Rated ${song.average_rating.toFixed(1)}/5 by ${song.review_count} reviewers.`;
+  const shareDescription = `Check out this amazing song on Song Monk! Rated ${song.average_rating.toFixed(1)}/5 by ${song.review_count} reviewers. ${song.review_count > 0 ? 'Join the conversation and share your thoughts!' : 'Be the first to review this song!'}`;
+  
+  // Enhanced metadata for better social sharing
+  const shareMetadata = {
+    url: shareUrl,
+    title: shareTitle,
+    description: shareDescription,
+    image: song.thumbnail_url || getYouTubeThumbnail(song.youtube_id),
+    type: 'music.song',
+    site_name: 'Song Monk',
+    artist: song.artist,
+    duration: song.duration,
+    genre: formatGenre(song.genre)
+  };
 
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-top-4 duration-1000">
       <CardContent className="p-8">
+        {/* Enhanced meta tags for social sharing */}
+        <div style={{ display: 'none' }}>
+          <meta property="og:url" content={shareMetadata.url} />
+          <meta property="og:type" content={shareMetadata.type} />
+          <meta property="og:title" content={shareMetadata.title} />
+          <meta property="og:description" content={shareMetadata.description} />
+          <meta property="og:image" content={shareMetadata.image} />
+          <meta property="og:site_name" content={shareMetadata.site_name} />
+          <meta property="music:musician" content={shareMetadata.artist} />
+          <meta property="music:duration" content={shareMetadata.duration} />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={shareMetadata.title} />
+          <meta name="twitter:description" content={shareMetadata.description} />
+          <meta name="twitter:image" content={shareMetadata.image} />
+        </div>
+
         <div className="grid md:grid-cols-2 gap-8">
           {/* YouTube Player */}
           <div className="space-y-4">
@@ -41,9 +71,9 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
               <div className="flex items-start justify-between mb-2">
                 <h1 className="text-3xl font-bold text-white flex-1">{song.title}</h1>
                 <ShareButton
-                  url={shareUrl}
-                  title={shareTitle}
-                  description={shareDescription}
+                  url={shareMetadata.url}
+                  title={shareMetadata.title}
+                  description={shareMetadata.description}
                   className="ml-4 border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
                 />
               </div>
