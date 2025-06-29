@@ -16,6 +16,7 @@ export const sanitizeText = (text: string): string => {
     .replace(/>/g, '>')
     .replace(/"/g, '"')
     .replace(/'/g, ''')
+    )
     .trim();
 };
 
