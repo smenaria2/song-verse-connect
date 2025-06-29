@@ -17,18 +17,30 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Mobile: Show 1 item, Desktop: Show 3 items
-  const itemsPerView = window.innerWidth < 768 ? 1 : 3;
+  const itemsPerView = isMobile ? 1 : 3;
   const maxIndex = Math.max(0, recentReviews.length - itemsPerView);
 
   useEffect(() => {
     if (isPlaying && !isPaused && recentReviews.length > itemsPerView) {
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
-      }, 5000); // Slower on mobile for better readability
+      }, isMobile ? 6000 : 4000); // Slower on mobile for better readability
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -41,7 +53,7 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, isPaused, maxIndex, recentReviews.length, itemsPerView]);
+  }, [isPlaying, isPaused, maxIndex, recentReviews.length, itemsPerView, isMobile]);
 
   // Move the conditional check after all hooks
   if (!recentReviews || recentReviews.length === 0) return null;
@@ -123,23 +135,35 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
             {recentReviews.map((review) => (
               <div 
                 key={review.id} 
-                className="flex-shrink-0 px-2"
-                style={{ width: `${100 / recentReviews.length}%` }}
+                className={`flex-shrink-0 ${isMobile ? 'w-full' : 'px-2'}`}
+                style={{ 
+                  width: isMobile ? '100%' : `${100 / recentReviews.length}%` 
+                }}
               >
                 {/* Enhanced mobile-friendly review card */}
-                <div className="bg-white/15 rounded-lg p-4 md:p-4 border border-white/20 h-full hover:bg-white/25 hover:border-purple-400/50 transition-all duration-200 shadow-lg backdrop-blur-sm">
+                <div className={`bg-white/15 rounded-lg border border-white/20 h-full hover:bg-white/25 hover:border-purple-400/50 transition-all duration-200 shadow-lg backdrop-blur-sm ${
+                  isMobile ? 'p-6 min-h-[320px]' : 'p-4'
+                }`}>
                   {/* Header with user info and share button */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <Avatar className="h-12 w-12 md:h-10 md:w-10 ring-2 ring-white/20 flex-shrink-0">
+                      <Avatar className={`ring-2 ring-white/20 flex-shrink-0 ${
+                        isMobile ? 'h-14 w-14' : 'h-10 w-10'
+                      }`}>
                         <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
-                        <AvatarFallback className={`text-sm text-white font-semibold ${getRandomAvatarColor(review.reviewer_id)}`}>
+                        <AvatarFallback className={`text-white font-semibold ${getRandomAvatarColor(review.reviewer_id)} ${
+                          isMobile ? 'text-base' : 'text-sm'
+                        }`}>
                           {getUserInitials(review.reviewer_username)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base md:text-base font-semibold text-white truncate">{review.reviewer_username}</h3>
-                        <p className="text-white/80 text-sm">
+                        <h3 className={`font-semibold text-white truncate ${
+                          isMobile ? 'text-lg' : 'text-base'
+                        }`}>{review.reviewer_username}</h3>
+                        <p className={`text-white/80 ${
+                          isMobile ? 'text-base' : 'text-sm'
+                        }`}>
                           {new Date(review.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -158,32 +182,41 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                   {/* Song info - more prominent on mobile */}
                   <Link 
                     to={`/song/${review.song_id}#review-${review.id}`}
-                    className="block mb-3 hover:text-purple-200 transition-colors"
+                    className="block mb-4 hover:text-purple-200 transition-colors"
                   >
-                    <h4 className="font-semibold text-base md:text-base text-white mb-1 line-clamp-2">{review.song_title || 'Unknown Song'}</h4>
-                    <p className="text-white/90 text-sm font-medium truncate">{review.song_artist || 'Unknown Artist'}</p>
+                    <h4 className={`font-semibold text-white mb-2 ${
+                      isMobile ? 'text-lg line-clamp-2' : 'text-base line-clamp-2'
+                    }`}>{review.song_title || 'Unknown Song'}</h4>
+                    <p className={`text-white/90 font-medium truncate ${
+                      isMobile ? 'text-base' : 'text-sm'
+                    }`}>{review.song_artist || 'Unknown Artist'}</p>
                   </Link>
                   
                   {/* Rating - larger on mobile */}
-                  <div className="flex items-center mb-3">
+                  <div className="flex items-center mb-4">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 md:h-4 md:w-4 ${i < review.rating ? "text-yellow-300 fill-current" : "text-white/40"
-                          }`}
+                        className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} ${
+                          i < review.rating ? "text-yellow-300 fill-current" : "text-white/40"
+                        }`}
                       />
                     ))}
                   </div>
                   
                   {/* Review text - better spacing on mobile */}
                   {review.review_text && (
-                    <p className="text-white/95 text-sm md:text-sm line-clamp-4 md:line-clamp-3 font-medium leading-relaxed mb-3">
+                    <p className={`text-white/95 font-medium leading-relaxed mb-4 ${
+                      isMobile ? 'text-base line-clamp-4' : 'text-sm line-clamp-3'
+                    }`}>
                       {review.review_text}
                     </p>
                   )}
                   
                   {/* Interaction stats */}
-                  <div className="flex items-center justify-between text-white/70 text-xs">
+                  <div className={`flex items-center justify-between text-white/70 ${
+                    isMobile ? 'text-sm' : 'text-xs'
+                  }`}>
                     <div className="flex items-center space-x-3">
                       {review.upvote_count > 0 && (
                         <span className="flex items-center space-x-1">
@@ -196,7 +229,7 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                       )}
                     </div>
                     <span className="text-purple-300 font-medium">
-                      Tap to view →
+                      {isMobile ? 'Tap to view →' : 'View →'}
                     </span>
                   </div>
                 </div>
@@ -211,7 +244,9 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-3 h-3 md:w-2 md:h-2 rounded-full transition-all duration-200 ${
+              className={`rounded-full transition-all duration-200 ${
+                isMobile ? 'w-3 h-3' : 'w-2 h-2'
+              } ${
                 index === currentIndex 
                   ? 'bg-purple-300 shadow-lg scale-125' 
                   : 'bg-white/40 hover:bg-white/60'
