@@ -1,18 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+
 import { formatTime } from '@/utils/formatters/time';
 
 interface UseYouTubePlayerProps {
   youtubeId?: string;
   isPlaying: boolean;
   onPlayingChange: (playing: boolean) => void;
-}
-
-// Declare YT global type for TypeScript
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
 }
 
 export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseYouTubePlayerProps) => {
@@ -23,72 +16,47 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
-
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  
   const playerRef = useRef<any>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerReadyRef = useRef(false);
   const apiLoadedRef = useRef(false);
+  const pendingPlayRef = useRef(false);
 
-  // --- Time update functions (Declared FIRST to avoid ReferenceError) ---
-  const stopTimeUpdate = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
+  // Detect user interaction for autoplay policy
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      setHasUserInteracted(true);
+      setPlaybackError(null);
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+    };
 
-  const startTimeUpdate = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      if (playerRef.current && playerReadyRef.current && !isDragging) {
-        try {
-          const time = playerRef.current.getCurrentTime();
-          setCurrentTime(time);
-        } catch (error) {
-          // This can happen if playerRef.current becomes null during the interval
-          console.log('Time update error (player might be unmounted/destroyed):', error);
-          stopTimeUpdate(); // Stop interval if player is gone
-        }
-      }
-    }, 500);
-  }, [isDragging, stopTimeUpdate]); // Added stopTimeUpdate to dependencies
-
-  // --- Cleanup player (Now has `stopTimeUpdate` available) ---
-  const cleanupPlayer = useCallback(() => {
-    console.log('Cleaning up player');
-    stopTimeUpdate(); // Use the declared function
-    
-    if (playerRef.current) {
-      try {
-        if (typeof playerRef.current.destroy === 'function') {
-          playerRef.current.destroy();
-        }
-      } catch (error) {
-        console.warn('Player cleanup error (safe to ignore in some cases):', error);
-      }
-      playerRef.current = null;
+    if (!hasUserInteracted) {
+      document.addEventListener('click', handleFirstInteraction);
+      document.addEventListener('keydown', handleFirstInteraction);
+      document.addEventListener('touchstart', handleFirstInteraction);
     }
 
-    playerReadyRef.current = false;
-    setIsLoading(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsDragging(false);
-    setDragTime(0);
-    onPlayingChange(false); // Ensure isPlaying state is reset
-  }, [onPlayingChange, stopTimeUpdate]); // Added stopTimeUpdate to dependencies
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+    };
+  }, [hasUserInteracted]);
 
-
-  // --- Load YouTube API ---
+  // Load YouTube API
   const loadYouTubeAPI = useCallback(() => {
-    if (apiLoadedRef.current || (window.YT && window.YT.Player)) return;
-
+    if (apiLoadedRef.current || window.YT) return;
+    
     apiLoadedRef.current = true;
     const tag = document.createElement('script');
-    // FIXED: Changed script URL to the correct one (https)
     tag.src = 'https://www.youtube.com/iframe_api';
     tag.async = true;
-
+    
     const firstScriptTag = document.getElementsByTagName('script')[0];
     if (firstScriptTag && firstScriptTag.parentNode) {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
@@ -97,37 +65,76 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     }
   }, []);
 
-  // --- Player event handlers (Now has `startTimeUpdate` and `stopTimeUpdate` available) ---
+  // Cleanup player
+  const cleanupPlayer = useCallback(() => {
+    console.log('Cleaning up player');
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    if (playerRef.current) {
+      try {
+        if (typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
+      } catch (error) {
+        console.log('Player cleanup error (safe to ignore):', error);
+      }
+      playerRef.current = null;
+    }
+    
+    playerReadyRef.current = false;
+    pendingPlayRef.current = false;
+    setIsLoading(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsDragging(false);
+    setDragTime(0);
+    setPlaybackError(null);
+  }, []);
+
+  // Player event handlers
   const onPlayerReady = useCallback((event: any) => {
     console.log('Player ready');
     playerReadyRef.current = true;
     setIsLoading(false);
-
+    
     try {
       const videoDuration = event.target.getDuration();
       setDuration(videoDuration);
       event.target.setVolume(volume[0]);
-
-      // IMPORTANT AUTOPLAY ADJUSTMENT:
-      // Removed automatic playVideo() call here.
-      // The `isPlaying` state from `useAudioPlayer` will be handled by a dedicated useEffect below,
-      // which will trigger `handlePlayPause` (which then calls `playVideo`).
-      // This ensures play attempts are always triggered by user action or explicit state change,
-      // respecting browser autoplay policies.
+      
+      // Handle pending play request
+      if (pendingPlayRef.current && hasUserInteracted) {
+        console.log('Executing pending play request');
+        setTimeout(() => {
+          try {
+            event.target.playVideo();
+            pendingPlayRef.current = false;
+          } catch (error) {
+            console.error('Pending play error:', error);
+            setPlaybackError('Playback failed. Please try clicking play again.');
+          }
+        }, 100);
+      }
     } catch (error) {
       console.error('Player ready error:', error);
+      setPlaybackError('Player initialization failed.');
     }
-  }, [volume]); // isPlaying removed as a dependency since its direct use for `playVideo` is removed here
+  }, [volume, hasUserInteracted]);
 
   const onPlayerStateChange = useCallback((event: any) => {
     console.log('Player state changed:', event.data);
-
+    
     try {
       const playerState = event.data;
-
+      
       if (playerState === window.YT.PlayerState.PLAYING) {
         onPlayingChange(true);
         setIsLoading(false);
+        setPlaybackError(null);
+        pendingPlayRef.current = false;
         startTimeUpdate();
       } else if (playerState === window.YT.PlayerState.PAUSED) {
         onPlayingChange(false);
@@ -144,26 +151,51 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     } catch (error) {
       console.error('Player state change error:', error);
     }
-  }, [onPlayingChange, startTimeUpdate, stopTimeUpdate]); // Dependencies are correct now
+  }, [onPlayingChange]);
 
   const onPlayerError = useCallback((event: any) => {
     console.error('YouTube player error:', event.data);
     setIsLoading(false);
     onPlayingChange(false);
-    alert(`Youtubeer Error: Code ${event.data}. This video might not be available or playable.`);
+    
+    const errorMessages = {
+      2: 'Invalid video ID',
+      5: 'HTML5 player error',
+      100: 'Video not found or private',
+      101: 'Video not available in your country',
+      150: 'Video not available in your country'
+    };
+    
+    const errorMessage = errorMessages[event.data as keyof typeof errorMessages] || 'Playback error occurred';
+    setPlaybackError(errorMessage);
   }, [onPlayingChange]);
 
+  // Time update functions
+  const startTimeUpdate = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      if (playerRef.current && playerReadyRef.current && !isDragging) {
+        try {
+          const time = playerRef.current.getCurrentTime();
+          setCurrentTime(time);
+        } catch (error) {
+          console.log('Time update error:', error);
+        }
+      }
+    }, 500);
+  }, [isDragging]);
 
-  // --- Initialize player ---
-  const initializePlayer = useCallback(() => {
-    if (!youtubeId) {
-      console.log('No YouTube ID provided, skipping player initialization.');
-      cleanupPlayer();
-      return;
+  const stopTimeUpdate = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
+  }, []);
 
-    if (!window.YT || !window.YT.Player) {
-      console.warn('YouTube API not fully loaded yet when trying to initialize player.');
+  // Initialize player
+  const initializePlayer = useCallback(() => {
+    if (!youtubeId || !window.YT || !window.YT.Player) {
+      console.log('Cannot initialize player - missing dependencies');
       return;
     }
 
@@ -171,26 +203,30 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       try {
         playerRef.current.destroy();
       } catch (error) {
-        console.warn('Error destroying previous player:', error);
+        console.log('Error destroying previous player:', error);
       }
-      playerRef.current = null;
     }
 
     console.log('Initializing YouTube player for:', youtubeId);
-    setIsLoading(true);
 
     let playerContainer = document.getElementById('youtube-player-container');
     if (!playerContainer) {
       playerContainer = document.createElement('div');
       playerContainer.id = 'youtube-player-container';
-      playerContainer.style.display = 'none';
+      // Better hiding method for desktop compatibility
+      playerContainer.style.position = 'absolute';
+      playerContainer.style.left = '-9999px';
+      playerContainer.style.width = '1px';
+      playerContainer.style.height = '1px';
+      playerContainer.style.opacity = '0';
+      playerContainer.style.pointerEvents = 'none';
       document.body.appendChild(playerContainer);
     }
 
     try {
       playerRef.current = new window.YT.Player('youtube-player-container', {
-        height: '0',
-        width: '0',
+        height: '1',
+        width: '1',
         videoId: youtubeId,
         playerVars: {
           autoplay: 0,
@@ -201,6 +237,12 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
           playsinline: 1,
           rel: 0,
           origin: window.location.origin,
+          enablejsapi: 1,
+          html5: 1,
+          // Additional params for better compatibility
+          iv_load_policy: 3,
+          cc_load_policy: 0,
+          showinfo: 0,
         },
         events: {
           onReady: onPlayerReady,
@@ -211,35 +253,88 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     } catch (error) {
       console.error('Failed to initialize YouTube player:', error);
       setIsLoading(false);
-      onPlayingChange(false);
+      setPlaybackError('Failed to initialize player');
     }
-  }, [youtubeId, cleanupPlayer, onPlayerReady, onPlayerStateChange, onPlayerError, onPlayingChange]);
+  }, [youtubeId, onPlayerReady, onPlayerStateChange, onPlayerError]);
 
-  // --- Control functions ---
+  // Control functions
   const handlePlayPause = useCallback(() => {
-    if (!playerRef.current || !playerReadyRef.current) {
-      console.log('Player not ready for play/pause, attempting to initialize.');
-      if (youtubeId && window.YT && window.YT.Player) {
-          initializePlayer();
-      }
-      setIsLoading(true);
+    console.log('Play/Pause clicked', { 
+      isPlaying, 
+      playerReady: playerReadyRef.current,
+      hasUserInteracted,
+      isMobile: navigator.userAgent.includes('Mobile'),
+      userAgent: navigator.userAgent
+    });
+
+    // Check for user interaction requirement
+    if (!hasUserInteracted) {
+      setPlaybackError('Please click anywhere first to enable audio playback');
       return;
     }
+
+    if (!playerRef.current) {
+      console.log('Player not available');
+      setPlaybackError('Player not ready');
+      return;
+    }
+
+    if (!playerReadyRef.current) {
+      console.log('Player not ready, storing play request');
+      pendingPlayRef.current = !isPlaying;
+      return;
+    }
+
+    setPlaybackError(null);
 
     try {
       if (isPlaying) {
         console.log('Pausing video');
         playerRef.current.pauseVideo();
-        stopTimeUpdate();
       } else {
         console.log('Playing video');
-        playerRef.current.playVideo();
+        
+        // Different approaches for desktop vs mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          playerRef.current.playVideo();
+        } else {
+          // Desktop: More careful approach
+          try {
+            const playPromise = playerRef.current.playVideo();
+            
+            // Handle promise-based play (newer browsers)
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch((error: any) => {
+                console.error('Desktop play promise failed:', error);
+                setPlaybackError('Playback blocked. Please ensure audio is allowed in your browser.');
+              });
+            }
+            
+            // Fallback check after a short delay
+            setTimeout(() => {
+              try {
+                const state = playerRef.current?.getPlayerState();
+                if (state !== window.YT?.PlayerState?.PLAYING && state !== window.YT?.PlayerState?.BUFFERING) {
+                  console.log('Play may have failed, trying again...');
+                  playerRef.current?.playVideo();
+                }
+              } catch (fallbackError) {
+                console.log('Fallback play check error:', fallbackError);
+              }
+            }, 500);
+          } catch (desktopError) {
+            console.error('Desktop play error:', desktopError);
+            setPlaybackError('Playback failed. Try refreshing the page.');
+          }
+        }
       }
     } catch (error) {
       console.error('Play/pause error:', error);
-      setIsLoading(false);
+      setPlaybackError('Playback control failed');
     }
-  }, [isPlaying, youtubeId, initializePlayer, stopTimeUpdate]);
+  }, [isPlaying, hasUserInteracted]);
 
   const handleVolumeChange = useCallback((newVolume: number[]) => {
     setVolume(newVolume);
@@ -264,10 +359,6 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       if (isMuted) {
         playerRef.current.unMute();
         setIsMuted(false);
-        if (volume[0] === 0) {
-          setVolume([50]);
-          playerRef.current.setVolume(50);
-        }
       } else {
         playerRef.current.mute();
         setIsMuted(true);
@@ -275,11 +366,12 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     } catch (error) {
       console.error('Mute error:', error);
     }
-  }, [isMuted, volume]);
+  }, [isMuted]);
 
   const handleSeekChange = useCallback((newTime: number[]) => {
     setIsDragging(true);
     setDragTime(newTime[0]);
+    setCurrentTime(newTime[0]);
   }, []);
 
   const handleSeekCommit = useCallback((newTime: number[]) => {
@@ -300,103 +392,43 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     }
   }, []);
 
-  // --- Effects ---
+  // Clear error when user interacts
+  const clearError = useCallback(() => {
+    setPlaybackError(null);
+  }, []);
 
-  // Effect for initial API loading and onYouTubeIframeAPIReady global callback
+  // Effects
   useEffect(() => {
-    if (!apiLoadedRef.current && !(window.YT && window.YT.Player)) {
+    if (!apiLoadedRef.current && !window.YT) {
       loadYouTubeAPI();
     }
+  }, [loadYouTubeAPI]);
 
-    // This handles the global callback from the YouTube API script.
-    // It's assigned once to ensure any subsequent calls to the script
-    // (if somehow reloaded) correctly trigger initialization.
-    // Ensure this doesn't overwrite if another script also sets it.
-    if (!window.onYouTubeIframeAPIReady) {
-      window.onYouTubeIframeAPIReady = () => {
-        console.log('Global onYouTubeIframeAPIReady fired!');
-        // If there's a youtubeId, attempt to initialize the player.
-        // This makes sure player initialization happens *after* the API is truly ready.
-        if (youtubeId) { // Only attempt to init if a song is present
-          initializePlayer();
-        }
-      };
-    }
-    
-    // Cleanup on component unmount
-    return () => {
-      // It's generally not recommended to unset window.onYouTubeIframeAPIReady
-      // as other parts of the app might rely on it.
-      // cleanupPlayer() will be called from the other useEffect when youtubeId changes or component unmounts.
-    };
-  }, [loadYouTubeAPI, initializePlayer, youtubeId]);
-
-
-  // Effect to manage player creation/destruction based on youtubeId changes
   useEffect(() => {
     if (!youtubeId) {
       cleanupPlayer();
       return;
     }
 
-    console.log('youtubeId changed, attempting to load song:', youtubeId);
+    console.log('Loading song:', youtubeId);
     setIsLoading(true);
-    playerReadyRef.current = false; // Player is not ready for the new ID
+    setPlaybackError(null);
+    playerReadyRef.current = false;
+    pendingPlayRef.current = false;
 
-    // If the YT API is already loaded, initialize player immediately.
-    // Otherwise, `window.onYouTubeIframeAPIReady` will handle it when the API loads.
     if (window.YT && window.YT.Player) {
       initializePlayer();
     } else {
-      console.log('YouTube API not yet loaded, waiting for onYouTubeIframeAPIReady for new song...');
-      // Ensure that when the API does load, it tries to initialize the player
-      // based on the *current* youtubeId. The `onYouTubeIframeAPIReady` handler
-      // in the previous effect will take care of this.
+      window.onYouTubeIframeAPIReady = () => {
+        console.log('YouTube API ready');
+        initializePlayer();
+      };
     }
 
-    // Cleanup when youtubeId changes or component unmounts
     return () => {
       cleanupPlayer();
     };
   }, [youtubeId, initializePlayer, cleanupPlayer]);
-
-
-  // Effect to synchronize play/pause state from `isPlaying` prop
-  useEffect(() => {
-      // Do nothing if player is not yet ready or no current song
-      if (!playerRef.current || !playerReadyRef.current || !youtubeId) {
-          // If we are currently trying to play but player is not ready,
-          // it likely means we are waiting for initialization.
-          if (isPlaying && !playerRef.current && youtubeId) {
-            console.log('isPlaying is true but player not ready, waiting for init.');
-            setIsLoading(true); // Keep loading state if we expect to play
-          }
-          return;
-      }
-
-      // Only attempt to play/pause if the desired state is different from current player state
-      // (This prevents endless loops if `onPlayingChange` itself triggers this effect)
-      const currentPlayerState = playerRef.current.getPlayerState();
-      const isActuallyPlaying = currentPlayerState === window.YT.PlayerState.PLAYING;
-      const isActuallyPaused = currentPlayerState === window.YT.PlayerState.PAUSED;
-
-      if (isPlaying && !isActuallyPlaying) {
-          console.log('`isPlaying` prop is true, attempting to play video.');
-          try {
-              playerRef.current.playVideo();
-          } catch (error) {
-              console.error('Failed to play video on isPlaying prop change:', error);
-          }
-      } else if (!isPlaying && !isActuallyPaused) {
-          console.log('`isPlaying` prop is false, attempting to pause video.');
-          try {
-              playerRef.current.pauseVideo();
-          } catch (error) {
-              console.error('Failed to pause video on isPlaying prop change:', error);
-          }
-      }
-  }, [isPlaying, playerReadyRef, playerRef, youtubeId]);
-
 
   return {
     // State
@@ -405,14 +437,17 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     currentTime: isDragging ? dragTime : currentTime,
     duration,
     isLoading,
-
+    hasUserInteracted,
+    playbackError,
+    
     // Controls
     handlePlayPause,
     handleVolumeChange,
     handleMute,
     handleSeekChange,
     handleSeekCommit,
-
+    clearError,
+    
     // Utilities
     formatTime,
     cleanupPlayer
