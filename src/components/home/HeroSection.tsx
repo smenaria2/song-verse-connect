@@ -4,7 +4,14 @@ import { HelpCircle } from "lucide-react";
 
 const HeroSection = () => {
   const { user } = useAuth();
-  const { showWelcomeManually } = useWelcomeModal();
+  const { showWelcomeManually, showWelcome } = useWelcomeModal();
+
+  const handleHowItWorks = () => {
+    console.log('How It Works button clicked');
+    console.log('Current showWelcome state:', showWelcome);
+    showWelcomeManually();
+    console.log('showWelcomeManually called');
+  };
 
   return (
     <div className="text-center mb-12 animate-in slide-in-from-top-6">
@@ -17,7 +24,7 @@ const HeroSection = () => {
       
       <div className="flex justify-center">
         <button
-          onClick={showWelcomeManually}
+          onClick={handleHowItWorks}
           className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/20 hover:border-white/30 transition-all duration-200 backdrop-blur-sm"
         >
           <HelpCircle size={18} />
