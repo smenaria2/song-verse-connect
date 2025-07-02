@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star, MessageCircle, Loader2, ThumbsUp, Pencil, Trash2, Save, X, Share } from "lucide-react";
 import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useUserRole";
 import ReviewInteractions from "@/components/ReviewInteractions";
 import ShareButton from "@/components/common/ShareButton";
 import { getRandomAvatarColor, getUserInitials } from "@/utils/profileUtils";
@@ -23,6 +24,7 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
   const [editRating, setEditRating] = useState(5);
   
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
   const { data: reviews = [], isLoading: reviewsLoading } = useReviews(songId, sortBy);
   const submitReviewMutation = useSubmitReview();
   const deleteReview = useDeleteReview();
@@ -56,8 +58,12 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
     }
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+  const handleDeleteReview = async (reviewId: string, isOwnReview: boolean = false) => {
+    const confirmMessage = isAdmin && !isOwnReview
+      ? 'Are you sure you want to delete this review? This action cannot be undone. (Admin action)'
+      : 'Are you sure you want to delete this review? This action cannot be undone.';
+      
+    if (window.confirm(confirmMessage)) {
       try {
         await deleteReview.mutateAsync(reviewId);
       } catch (error) {
@@ -68,6 +74,10 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
 
   const getReviewShareUrl = (reviewId: string) => {
     return `${window.location.origin}/song/${songId}#review-${reviewId}`;
+  };
+
+  const canDeleteReview = (review: any) => {
+    return user && (review.reviewer_id === user.id || isAdmin);
   };
 
   return (
@@ -140,7 +150,7 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                           )}
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex items-center space-x-1 flex-shrink-0">
                         <Button
                           onClick={() => {
                             const shareUrl = getReviewShareUrl(review.id);
@@ -153,6 +163,19 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                         >
                           <Share className="h-3 w-3" />
                         </Button>
+                        {/* Admin delete button for other users' reviews */}
+                        {isAdmin && (
+                          <Button
+                            onClick={() => handleDeleteReview(review.id, false)}
+                            variant="ghost"
+                            size="sm"
+                            className="text-white/40 hover:text-red-400 hover:bg-red-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"
+                            title="Delete review (Admin)"
+                            disabled={deleteReview.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -295,7 +318,7 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                               <Pencil className="h-3 w-3" />
                             </Button>
                             <Button
-                              onClick={() => handleDeleteReview(userReview.id)}
+                              onClick={() => handleDeleteReview(userReview.id, true)}
                               variant="ghost"
                               size="sm"
                               className="text-white/40 hover:text-red-400 hover:bg-red-400/10 p-1 h-6 w-6 rounded-md transition-all duration-200"

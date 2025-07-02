@@ -1,11 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Clock, Play } from "lucide-react";
+import { Star, Clock, Play, Trash2 } from "lucide-react";
 import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useUserRole";
+import { useDeleteSong } from "@/hooks/useDeleteSong";
+import { useNavigate } from "react-router-dom";
 import ShareButton from "@/components/common/ShareButton";
 import { getYouTubeThumbnail } from "@/utils/youtube/helpers";
 
@@ -15,6 +19,10 @@ interface SongDetailsDisplayProps {
 
 const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
   const { playPause } = useAudioPlayer();
+  const { user } = useAuth();
+  const isAdmin = useIsAdmin();
+  const deleteSong = useDeleteSong();
+  const navigate = useNavigate();
   
   const shareUrl = `${window.location.origin}/song/${song.id}`;
   const shareTitle = `${song.title} by ${song.artist}`;
@@ -41,6 +49,23 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
       artist: song.artist
     });
   };
+
+  const handleDeleteSong = async () => {
+    const confirmMessage = isAdmin 
+      ? `Are you sure you want to delete "${song.title}"? This action cannot be undone and will remove all associated reviews and data.`
+      : `Are you sure you want to delete "${song.title}"? You can only delete songs that have no reviews.`;
+      
+    if (window.confirm(confirmMessage)) {
+      deleteSong.mutate(song.id, {
+        onSuccess: () => {
+          navigate('/');
+        }
+      });
+    }
+  };
+
+  // Show delete button if user owns the song or is admin
+  const canShowDeleteButton = user && (song.submitter_id === user.id || isAdmin);
 
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-top-4 duration-1000">
@@ -86,8 +111,8 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                 <h1 className="text-xl md:text-3xl font-bold text-white leading-tight md:flex-1 break-words">
                   {song.title}
                 </h1>
-                {/* Mobile: Share button below title */}
-                <div className="md:ml-4 flex justify-end">
+                {/* Mobile: Action buttons below title */}
+                <div className="md:ml-4 flex justify-end space-x-2">
                   <ShareButton
                     url={shareMetadata.url}
                     title={shareMetadata.title}
@@ -96,6 +121,18 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                     className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30"
                     size="sm"
                   />
+                  {canShowDeleteButton && (
+                    <Button
+                      onClick={handleDeleteSong}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 bg-red-600/20 text-red-300 hover:bg-red-600/30 hover:text-white"
+                      disabled={deleteSong.isPending}
+                      title={isAdmin ? "Delete song (Admin)" : "Delete song (no reviews only)"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
               <p className="text-lg md:text-xl text-white/80 mb-3 md:mb-4 break-words">{song.artist}</p>
@@ -151,6 +188,9 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
               <div className="text-sm md:text-base space-y-1">
                 <p className="text-white/60">
                   Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
+                  {isAdmin && song.submitter_id === user?.id && (
+                    <span className="ml-2 text-purple-400 text-xs">(You)</span>
+                  )}
                 </p>
                 <p className="text-white/60 text-xs md:text-sm">
                   {formatDate(song.created_at)}

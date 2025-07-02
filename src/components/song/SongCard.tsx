@@ -1,10 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Play } from "lucide-react";
+import { Star, Play, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Song } from "@/types/app";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useUserRole";
+import { useDeleteSong } from "@/hooks/useDeleteSong";
 import AddToPlaylistModal from "@/components/AddToPlaylistModal";
 import SongReviewSection from "@/components/home/SongReviewSection";
 import { formatGenre } from "@/utils/formatters/genre";
@@ -18,6 +21,9 @@ interface SongCardProps {
 
 const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps) => {
   const { playPause } = useAudioPlayer();
+  const { user } = useAuth();
+  const isAdmin = useIsAdmin();
+  const deleteSong = useDeleteSong();
 
   const handleSongPlay = () => {
     playPause({
@@ -27,6 +33,19 @@ const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps)
       artist: song.artist
     });
   };
+
+  const handleDeleteSong = async () => {
+    const confirmMessage = isAdmin 
+      ? `Are you sure you want to delete "${song.title}"? This action cannot be undone.`
+      : `Are you sure you want to delete "${song.title}"? You can only delete songs that have no reviews.`;
+      
+    if (window.confirm(confirmMessage)) {
+      deleteSong.mutate(song.id);
+    }
+  };
+
+  // Show delete button if user owns the song or is admin
+  const canShowDeleteButton = user && (song.submitter_id === user.id || isAdmin);
 
   return (
     <Card 
@@ -77,16 +96,32 @@ const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps)
           
           {/* Action Buttons */}
           <div className="flex items-center justify-between space-x-2">
-            <AddToPlaylistModal songId={song.id} songTitle={song.title} />
-            <Button
-              onClick={handleSongPlay}
-              variant="outline"
-              size="sm"
-              className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white flex-1"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Play
-            </Button>
+            <div className="flex items-center space-x-2 flex-1">
+              <AddToPlaylistModal songId={song.id} songTitle={song.title} />
+              <Button
+                onClick={handleSongPlay}
+                variant="outline"
+                size="sm"
+                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white flex-1"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Play
+              </Button>
+            </div>
+            
+            {/* Delete Button */}
+            {canShowDeleteButton && (
+              <Button
+                onClick={handleDeleteSong}
+                variant="outline"
+                size="sm"
+                className="border-red-500/50 bg-red-600/20 text-red-300 hover:bg-red-600/30 hover:text-white"
+                disabled={deleteSong.isPending}
+                title={isAdmin ? "Delete song (Admin)" : "Delete song (no reviews only)"}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           {/* Review Section */}
