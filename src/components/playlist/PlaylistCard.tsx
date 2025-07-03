@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ListMusic, Play } from "lucide-react";
+import { ListMusic, Play, Pause } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { usePlaylistWithSongs } from "@/hooks/usePlaylists";
 import ShareButton from "@/components/common/ShareButton";
@@ -14,11 +14,12 @@ interface PlaylistCardProps {
 
 const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
   const { data: playlistWithSongs } = usePlaylistWithSongs(playlist.id);
-  const { playPause } = useAudioPlayer();
+  const { playPause, currentSong, isPlaying } = useAudioPlayer();
 
   const handlePlayPlaylist = () => {
     if (playlistWithSongs?.songs?.length) {
       const firstSong = playlistWithSongs.songs[0];
+      console.log('PlaylistCard: Playing first song from playlist:', firstSong.title);
       playPause({
         id: firstSong.id,
         youtubeId: firstSong.youtube_id,
@@ -31,6 +32,11 @@ const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
   const shareUrl = `${window.location.origin}/playlist/${playlist.id}`;
   const shareTitle = playlist.name;
   const shareDescription = `Check out this ${playlist.is_public ? 'public' : ''} playlist: ${playlist.name}${playlist.description ? ` - ${playlist.description}` : ''}`;
+
+  // Check if any song from this playlist is currently playing
+  const isPlaylistSongPlaying = playlistWithSongs?.songs?.some(song => 
+    currentSong?.id === song.id && isPlaying
+  );
 
   return (
     <Card 
@@ -53,6 +59,11 @@ const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
                   Public
                 </Badge>
               )}
+              {isPlaylistSongPlaying && (
+                <Badge variant="secondary" className="bg-purple-600/20 text-purple-300">
+                  Playing
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-between md:justify-end space-x-2 md:ml-4">
@@ -70,9 +81,13 @@ const PlaylistCard = ({ playlist, index = 0 }: PlaylistCardProps) => {
                   onClick={handlePlayPlaylist}
                   variant="outline"
                   size="sm"
-                  className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+                  className={`${
+                    isPlaylistSongPlaying
+                      ? 'border-green-500/50 bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                      : 'border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white'
+                  }`}
                 >
-                  <Play className="h-4 w-4" />
+                  {isPlaylistSongPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
               )}
               {playlist.is_public && (

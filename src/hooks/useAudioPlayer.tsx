@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface AudioPlayerContextType {
   currentSong: {
@@ -26,13 +25,32 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const playPause = (song: { id: string; youtubeId: string; title: string; artist: string }) => {
+    console.log('AudioPlayer: playPause called', {
+      newSong: song.title,
+      currentSong: currentSong?.title,
+      isPlaying,
+      isSameSong: currentSong?.id === song.id
+    });
+
     if (currentSong?.id === song.id) {
+      // Same song - toggle play/pause
+      console.log('AudioPlayer: Toggling play/pause for same song');
       setIsPlaying(!isPlaying);
     } else {
+      // Different song - switch and play
+      console.log('AudioPlayer: Switching to new song and playing');
       setCurrentSong(song);
       setIsPlaying(true);
     }
   };
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('AudioPlayer: State changed', {
+      currentSong: currentSong?.title,
+      isPlaying
+    });
+  }, [currentSong, isPlaying]);
 
   return (
     <AudioPlayerContext.Provider value={{

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Clock, Play, Trash2 } from "lucide-react";
+import { Star, Clock, Play, Trash2, Pause } from "lucide-react";
 import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
@@ -18,7 +18,7 @@ interface SongDetailsDisplayProps {
 }
 
 const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
-  const { playPause } = useAudioPlayer();
+  const { playPause, currentSong, isPlaying } = useAudioPlayer();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const deleteSong = useDeleteSong();
@@ -42,6 +42,7 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
   };
 
   const handlePlaySong = () => {
+    console.log('SongDetailsDisplay: Play button clicked for song:', song.title);
     playPause({
       id: song.id,
       youtubeId: song.youtube_id,
@@ -66,6 +67,10 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
 
   // Show delete button if user owns the song or is admin
   const canShowDeleteButton = user && (song.submitter_id === user.id || isAdmin);
+
+  // Check if this song is currently playing
+  const isCurrentSong = currentSong?.id === song.id;
+  const isCurrentlyPlaying = isCurrentSong && isPlaying;
 
   return (
     <Card className="bg-white/10 border-white/20 backdrop-blur-md animate-in slide-in-from-top-4 duration-1000">
@@ -167,11 +172,19 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                 </div>
               </div>
 
-              {/* Enhanced Play Button with better visibility */}
+              {/* Enhanced Play Button with better visibility and current state */}
               <div className="mb-4">
                 <Button
                   onClick={handlePlaySong}
-                  className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold px-8 py-4 rounded-xl shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-300 border-2 border-purple-400/30 hover:border-purple-300/50 backdrop-blur-sm"
+                  className={`${
+                    isCurrentlyPlaying
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800'
+                      : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                  } text-white font-bold px-8 py-4 rounded-xl shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-300 border-2 ${
+                    isCurrentlyPlaying
+                      ? 'border-green-400/30 hover:border-green-300/50'
+                      : 'border-purple-400/30 hover:border-purple-300/50'
+                  } backdrop-blur-sm`}
                   size="lg"
                   style={{
                     color: '#ffffff',
@@ -180,8 +193,17 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                     fontWeight: '700'
                   }}
                 >
-                  <Play className="h-6 w-6 mr-3 text-white drop-shadow-lg" />
-                  <span className="text-white font-bold tracking-wide">Play in Mini Player</span>
+                  {isCurrentlyPlaying ? (
+                    <>
+                      <Pause className="h-6 w-6 mr-3 text-white drop-shadow-lg" />
+                      <span className="text-white font-bold tracking-wide">Playing in Mini Player</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-6 w-6 mr-3 text-white drop-shadow-lg" />
+                      <span className="text-white font-bold tracking-wide">Play in Mini Player</span>
+                    </>
+                  )}
                 </Button>
               </div>
 

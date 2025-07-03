@@ -20,12 +20,13 @@ interface SongCardProps {
 }
 
 const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps) => {
-  const { playPause } = useAudioPlayer();
+  const { playPause, currentSong, isPlaying } = useAudioPlayer();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const deleteSong = useDeleteSong();
 
   const handleSongPlay = () => {
+    console.log('SongCard: Play button clicked for song:', song.title);
     playPause({
       id: song.id,
       youtubeId: song.youtube_id,
@@ -46,6 +47,10 @@ const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps)
 
   // Show delete button if user owns the song or is admin
   const canShowDeleteButton = user && (song.submitter_id === user.id || isAdmin);
+
+  // Check if this song is currently playing
+  const isCurrentSong = currentSong?.id === song.id;
+  const isCurrentlyPlaying = isCurrentSong && isPlaying;
 
   return (
     <Card 
@@ -70,11 +75,21 @@ const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps)
               <Button
                 onClick={handleSongPlay}
                 size="sm"
-                className="bg-purple-600/80 hover:bg-purple-700 text-white"
+                className={`${
+                  isCurrentlyPlaying 
+                    ? 'bg-green-600/80 hover:bg-green-700' 
+                    : 'bg-purple-600/80 hover:bg-purple-700'
+                } text-white shadow-lg`}
               >
                 <Play className="h-4 w-4" />
               </Button>
             </div>
+            {/* Playing indicator */}
+            {isCurrentlyPlaying && (
+              <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                Playing
+              </div>
+            )}
           </div>
           
           {/* Song Info */}
@@ -102,10 +117,14 @@ const SongCard = ({ song, showReviewSection = false, index = 0 }: SongCardProps)
                 onClick={handleSongPlay}
                 variant="outline"
                 size="sm"
-                className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white flex-1"
+                className={`${
+                  isCurrentlyPlaying
+                    ? 'border-green-500/50 bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                    : 'border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white'
+                } flex-1`}
               >
                 <Play className="h-4 w-4 mr-2" />
-                Play
+                {isCurrentlyPlaying ? 'Playing' : 'Play'}
               </Button>
             </div>
             

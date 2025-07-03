@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Play, Pencil, Trash2 } from "lucide-react";
+import { Star, Play, Pencil, Trash2, Pause } from "lucide-react";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { UserReview } from "@/types/app";
@@ -18,11 +18,12 @@ const UserReviewCard = ({ review, index = 0 }: UserReviewCardProps) => {
   const [editText, setEditText] = useState("");
   const [editRating, setEditRating] = useState(5);
   
-  const { playPause } = useAudioPlayer();
+  const { playPause, currentSong, isPlaying } = useAudioPlayer();
   const submitReview = useSubmitReview();
   const deleteReview = useDeleteReview();
 
   const handleSongPlay = () => {
+    console.log('UserReviewCard: Play button clicked for song:', review.song.title);
     playPause({
       id: review.song.id,
       youtubeId: review.song.youtube_id,
@@ -65,6 +66,10 @@ const UserReviewCard = ({ review, index = 0 }: UserReviewCardProps) => {
       }
     }
   };
+
+  // Check if this song is currently playing
+  const isCurrentSong = currentSong?.id === review.song.id;
+  const isCurrentlyPlaying = isCurrentSong && isPlaying;
 
   return (
     <Card 
@@ -178,9 +183,13 @@ const UserReviewCard = ({ review, index = 0 }: UserReviewCardProps) => {
                     onClick={handleSongPlay}
                     variant="outline"
                     size="sm"
-                    className="border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white"
+                    className={`${
+                      isCurrentlyPlaying
+                        ? 'border-green-500/50 bg-green-600/20 text-green-300 hover:bg-green-600/30'
+                        : 'border-purple-500/50 bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 hover:text-white'
+                    }`}
                   >
-                    <Play className="h-4 w-4" />
+                    {isCurrentlyPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
@@ -190,6 +199,9 @@ const UserReviewCard = ({ review, index = 0 }: UserReviewCardProps) => {
             )}
             <div className="flex items-center justify-between text-white/60 text-sm">
               <span>{formatDate(review.created_at)}</span>
+              {isCurrentlyPlaying && (
+                <span className="text-green-400 font-medium">Currently Playing</span>
+              )}
             </div>
           </div>
         )}
