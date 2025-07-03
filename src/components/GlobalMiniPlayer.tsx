@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Volume2, VolumeX, X, Loader2, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, X, Loader2, SkipBack, SkipForward, AlertCircle } from 'lucide-react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { Link } from 'react-router-dom';
@@ -16,13 +16,17 @@ const GlobalMiniPlayer = () => {
     currentTime,
     duration,
     isLoading,
+    hasUserInteracted,
+    playbackError,
+    isMobile,
     handlePlayPause,
     handleVolumeChange,
     handleMute,
     handleSeekChange,
     handleSeekCommit,
     formatTime,
-    cleanupPlayer
+    cleanupPlayer,
+    clearError
   } = useYouTubePlayer({
     youtubeId: currentSong?.youtubeId,
     isPlaying,
@@ -41,6 +45,36 @@ const GlobalMiniPlayer = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/20 z-50 shadow-2xl">
       <div className="container mx-auto px-3 py-3">
+        {/* Error Display */}
+        {playbackError && (
+          <div className="mb-2 p-2 bg-red-600/20 border border-red-600/30 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                <p className="text-red-200 text-xs">{playbackError}</p>
+              </div>
+              <Button
+                onClick={clearError}
+                variant="ghost"
+                size="sm"
+                className="text-red-400 hover:text-red-300 p-1 h-auto"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* User Interaction Prompt for Mobile */}
+        {!hasUserInteracted && isMobile && (
+          <div className="mb-2 p-2 bg-blue-600/20 border border-blue-600/30 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse flex-shrink-0"></div>
+              <p className="text-blue-200 text-xs">Tap anywhere to enable audio playback</p>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Layout */}
         <div className="block md:hidden">
           <div className="space-y-3">
@@ -97,7 +131,7 @@ const GlobalMiniPlayer = () => {
                       onValueCommit={handleSeekCommit}
                       max={duration}
                       step={0.1}
-                      className="w-full cursor-pointer"
+                      className="w-full cursor-pointer mini-player-slider"
                     />
                   </div>
                   <span className="w-10 font-mono">{formatTime(duration)}</span>
@@ -121,7 +155,13 @@ const GlobalMiniPlayer = () => {
                 size="lg"
                 onClick={handlePlayPause}
                 disabled={isLoading}
-                className="text-white hover:text-purple-400 hover:bg-white/10 p-3 bg-white/10 rounded-full"
+                className="text-white hover:text-purple-400 hover:bg-white/10 p-4 bg-white/10 rounded-full min-h-[56px] min-w-[56px]"
+                style={{ 
+                  // Ensure button is large enough for mobile touch
+                  minHeight: '56px',
+                  minWidth: '56px',
+                  touchAction: 'manipulation'
+                }}
               >
                 {isLoading ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -140,6 +180,32 @@ const GlobalMiniPlayer = () => {
               >
                 <SkipForward className="h-5 w-5" />
               </Button>
+            </div>
+
+            {/* Mobile Volume Control */}
+            <div className="flex items-center justify-center space-x-3 px-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleMute}
+                disabled={isLoading}
+                className="text-white hover:text-purple-400 hover:bg-white/10 p-2"
+              >
+                {isMuted || volume[0] === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              
+              <div className="flex-1 max-w-32">
+                <Slider
+                  value={volume}
+                  onValueChange={handleVolumeChange}
+                  max={100}
+                  step={1}
+                  className="w-full mini-player-slider"
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <span className="text-white/60 text-xs w-8 text-center">{volume[0]}</span>
             </div>
           </div>
         </div>
@@ -227,7 +293,7 @@ const GlobalMiniPlayer = () => {
                     onValueCommit={handleSeekCommit}
                     max={duration}
                     step={0.1}
-                    className="w-full cursor-pointer"
+                    className="w-full cursor-pointer mini-player-slider"
                   />
                 </div>
                 <span className="w-12 font-mono">{formatTime(duration)}</span>
@@ -253,7 +319,7 @@ const GlobalMiniPlayer = () => {
                 onValueChange={handleVolumeChange}
                 max={100}
                 step={1}
-                className="w-full"
+                className="w-full mini-player-slider"
                 disabled={isLoading}
               />
             </div>
