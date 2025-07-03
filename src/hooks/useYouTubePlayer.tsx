@@ -26,6 +26,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
   const apiLoadedRef = useRef(false);
   const pendingPlayRef = useRef(false);
   const retryCountRef = useRef(0);
+  const isInitializingRef = useRef(false);
 
   // Detect mobile device
   useEffect(() => {
@@ -113,6 +114,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     playerReadyRef.current = false;
     pendingPlayRef.current = false;
     retryCountRef.current = 0;
+    isInitializingRef.current = false;
     setIsLoading(false);
     setCurrentTime(0);
     setDuration(0);
@@ -125,6 +127,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
   const onPlayerReady = useCallback((event: any) => {
     console.log('Player ready for mobile:', isMobile);
     playerReadyRef.current = true;
+    isInitializingRef.current = false;
     setIsLoading(false);
     
     try {
@@ -142,23 +145,20 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
         }
       }
       
-      // Handle pending play request
+      // Handle pending play request - IMPROVED LOGIC
       if (pendingPlayRef.current && hasUserInteracted) {
         console.log('Executing pending play request for mobile');
+        // Add a longer delay to ensure player is fully ready
         setTimeout(() => {
           try {
-            if (isMobile) {
-              // Mobile-specific play approach
-              event.target.playVideo();
-            } else {
-              event.target.playVideo();
-            }
+            console.log('Attempting to play video after ready state');
+            event.target.playVideo();
             pendingPlayRef.current = false;
           } catch (error) {
             console.error('Pending play error:', error);
             setPlaybackError('Playback failed. Please try tapping play again.');
           }
-        }, isMobile ? 200 : 100);
+        }, isMobile ? 500 : 200); // Longer delay for mobile
       }
     } catch (error) {
       console.error('Player ready error:', error);
@@ -190,11 +190,23 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
         stopTimeUpdate();
       } else if (playerState === window.YT.PlayerState.CUED) {
         setIsLoading(false);
+        // IMPORTANT: Auto-play after cued if there's a pending play request
+        if (pendingPlayRef.current && hasUserInteracted) {
+          console.log('Video cued, attempting to play immediately');
+          setTimeout(() => {
+            try {
+              event.target.playVideo();
+              pendingPlayRef.current = false;
+            } catch (error) {
+              console.error('Auto-play after cue error:', error);
+            }
+          }, 100);
+        }
       }
     } catch (error) {
       console.error('Player state change error:', error);
     }
-  }, [onPlayingChange, isMobile]);
+  }, [onPlayingChange, isMobile, hasUserInteracted]);
 
   const onPlayerError = useCallback((event: any) => {
     console.error('YouTube player error:', event.data, 'Mobile:', isMobile);
@@ -242,8 +254,8 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
 
   // Initialize player with mobile optimizations
   const initializePlayer = useCallback(() => {
-    if (!youtubeId || !window.YT || !window.YT.Player) {
-      console.log('Cannot initialize player - missing dependencies');
+    if (!youtubeId || !window.YT || !window.YT.Player || isInitializingRef.current) {
+      console.log('Cannot initialize player - missing dependencies or already initializing');
       return;
     }
 
@@ -256,6 +268,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     }
 
     console.log('Initializing YouTube player for mobile:', isMobile, 'Video:', youtubeId);
+    isInitializingRef.current = true;
 
     let playerContainer = document.getElementById('youtube-player-container');
     if (!playerContainer) {
@@ -315,6 +328,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     } catch (error) {
       console.error('Failed to initialize YouTube player:', error);
       setIsLoading(false);
+      isInitializingRef.current = false;
       setPlaybackError('Failed to initialize player');
     }
   }, [youtubeId, onPlayerReady, onPlayerStateChange, onPlayerError, isMobile]);
@@ -326,7 +340,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       playerReady: playerReadyRef.current,
       hasUserInteracted,
       isMobile,
-      userAgent: navigator.userAgent.substring(0, 50)
+      isInitializing: isInitializingRef.current
     });
 
     // Check for user interaction requirement
@@ -335,8 +349,8 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       return;
     }
 
-    if (!playerRef.current) {
-      console.log('Player not available');
+    if (!playerRef.current || isInitializingRef.current) {
+      console.log('Player not available or still initializing');
       setPlaybackError('Player not ready');
       return;
     }
@@ -356,10 +370,24 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       } else {
         console.log('Playing video on mobile:', isMobile);
         
+        // IMPROVED: Check player state before attempting to play
+        const currentState = playerRef.current.getPlayerState();
+        console.log('Current player state before play:', currentState);
+        
         if (isMobile) {
-          // Mobile-specific play logic
+          // Mobile-specific play logic with better state handling
           const playVideo = () => {
             try {
+              // Force load the video if not loaded
+              if (currentState === window.YT?.PlayerState?.UNSTARTED || 
+                  currentState === -1) {
+                console.log('Video not loaded, loading first...');
+                playerRef.current.loadVideoById(youtubeId);
+                // Set pending play to trigger after load
+                pendingPlayRef.current = true;
+                return;
+              }
+              
               playerRef.current.playVideo();
               
               // Mobile fallback: check if play was successful after delay
@@ -391,8 +419,18 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
           setTimeout(playVideo, 100);
           
         } else {
-          // Desktop play logic
+          // Desktop play logic with better state handling
           try {
+            // Force load the video if not loaded
+            if (currentState === window.YT?.PlayerState?.UNSTARTED || 
+                currentState === -1) {
+              console.log('Video not loaded, loading first...');
+              playerRef.current.loadVideoById(youtubeId);
+              // Set pending play to trigger after load
+              pendingPlayRef.current = true;
+              return;
+            }
+            
             const playPromise = playerRef.current.playVideo();
             
             if (playPromise && typeof playPromise.catch === 'function') {
@@ -424,7 +462,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       console.error('Play/pause error:', error);
       setPlaybackError('Playback control failed');
     }
-  }, [isPlaying, hasUserInteracted, isMobile]);
+  }, [isPlaying, hasUserInteracted, isMobile, youtubeId]);
 
   const handleVolumeChange = useCallback((newVolume: number[]) => {
     setVolume(newVolume);
@@ -507,6 +545,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
     playerReadyRef.current = false;
     pendingPlayRef.current = false;
     retryCountRef.current = 0;
+    isInitializingRef.current = false;
 
     if (window.YT && window.YT.Player) {
       // Add delay for mobile to ensure proper initialization

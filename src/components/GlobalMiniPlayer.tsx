@@ -44,7 +44,7 @@ const GlobalMiniPlayer = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-md border-t border-white/20 z-50 shadow-2xl">
-      <div className="container mx-auto px-3 py-3">
+      <div className="container mx-auto px-3 py-2">
         {/* Error Display */}
         {playbackError && (
           <div className="mb-2 p-2 bg-red-600/20 border border-red-600/30 rounded-lg">
@@ -75,12 +75,12 @@ const GlobalMiniPlayer = () => {
           </div>
         )}
 
-        {/* Mobile Layout */}
+        {/* Mobile Layout - MADE SMALLER */}
         <div className="block md:hidden">
-          <div className="space-y-3">
-            {/* Song Info Row */}
-            <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
+          <div className="space-y-2">
+            {/* Song Info Row - Reduced padding */}
+            <div className="flex items-center space-x-2">
+              <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
                 <img 
                   src={getYouTubeThumbnail(currentSong.youtubeId)}
                   alt={currentSong.title}
@@ -92,7 +92,7 @@ const GlobalMiniPlayer = () => {
                 />
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    <Loader2 className="h-3 w-3 animate-spin text-white" />
                   </div>
                 )}
               </div>
@@ -102,99 +102,73 @@ const GlobalMiniPlayer = () => {
                   to={`/song/${currentSong.id}`}
                   className="block hover:text-purple-400 transition-colors"
                 >
-                  <p className="text-white text-sm font-medium truncate hover:underline">
+                  <p className="text-white text-xs font-medium truncate hover:underline">
                     {currentSong.title}
                   </p>
                 </Link>
                 <p className="text-white/70 text-xs truncate">{currentSong.artist}</p>
               </div>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="text-white hover:text-red-400 hover:bg-white/10 p-2 flex-shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              {/* Controls in same row - smaller buttons */}
+              <div className="flex items-center space-x-1 flex-shrink-0">
+                <Button
+                  onClick={handlePlayPause}
+                  variant="ghost"
+                  size="sm"
+                  disabled={isLoading}
+                  className="text-white hover:text-purple-400 hover:bg-white/10 p-1 bg-white/10 rounded-full min-h-[32px] min-w-[32px]"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleMute}
+                  variant="ghost"
+                  size="sm"
+                  disabled={isLoading}
+                  className="text-white hover:text-purple-400 hover:bg-white/10 p-1 min-h-[32px] min-w-[32px]"
+                >
+                  {isMuted || volume[0] === 0 ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                </Button>
+
+                <Button
+                  onClick={handleClose}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:text-red-400 hover:bg-white/10 p-1 flex-shrink-0 min-h-[32px] min-w-[32px]"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
 
-            {/* Progress Bar Row */}
+            {/* Progress Bar Row - Only show if duration available */}
             {duration > 0 && !isLoading && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 text-xs text-white/70">
-                  <span className="w-10 text-right font-mono">{formatTime(currentTime)}</span>
-                  <div className="flex-1">
-                    <Slider
-                      value={[currentTime]}
-                      onValueChange={handleSeekChange}
-                      onValueCommit={handleSeekCommit}
-                      max={duration}
-                      step={0.1}
-                      className="w-full cursor-pointer mini-player-slider"
-                    />
-                  </div>
-                  <span className="w-10 font-mono">{formatTime(duration)}</span>
+              <div className="flex items-center space-x-2 text-xs text-white/70">
+                <span className="w-8 text-right font-mono text-xs">{formatTime(currentTime)}</span>
+                <div className="flex-1">
+                  <Slider
+                    value={[currentTime]}
+                    onValueChange={handleSeekChange}
+                    onValueCommit={handleSeekCommit}
+                    max={duration}
+                    step={0.1}
+                    className="w-full cursor-pointer mini-player-slider"
+                  />
                 </div>
+                <span className="w-8 font-mono text-xs">{formatTime(duration)}</span>
               </div>
             )}
 
-            {/* Controls Row */}
-            <div className="flex items-center justify-center space-x-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white/60 hover:text-white hover:bg-white/10 p-2"
-                disabled
-              >
-                <SkipBack className="h-5 w-5" />
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={handlePlayPause}
-                disabled={isLoading}
-                className="text-white hover:text-purple-400 hover:bg-white/10 p-4 bg-white/10 rounded-full min-h-[56px] min-w-[56px]"
-                style={{ 
-                  // Ensure button is large enough for mobile touch
-                  minHeight: '56px',
-                  minWidth: '56px',
-                  touchAction: 'manipulation'
-                }}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : isPlaying ? (
-                  <Pause className="h-6 w-6" />
-                ) : (
-                  <Play className="h-6 w-6" />
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white/60 hover:text-white hover:bg-white/10 p-2"
-                disabled
-              >
-                <SkipForward className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Mobile Volume Control */}
-            <div className="flex items-center justify-center space-x-3 px-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMute}
-                disabled={isLoading}
-                className="text-white hover:text-purple-400 hover:bg-white/10 p-2"
-              >
-                {isMuted || volume[0] === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </Button>
-              
-              <div className="flex-1 max-w-32">
+            {/* Volume Control - Compact */}
+            <div className="flex items-center justify-center space-x-2 px-2">
+              <div className="flex-1 max-w-24">
                 <Slider
                   value={volume}
                   onValueChange={handleVolumeChange}
@@ -204,13 +178,12 @@ const GlobalMiniPlayer = () => {
                   disabled={isLoading}
                 />
               </div>
-              
-              <span className="text-white/60 text-xs w-8 text-center">{volume[0]}</span>
+              <span className="text-white/60 text-xs w-6 text-center">{volume[0]}</span>
             </div>
           </div>
         </div>
 
-        {/* Desktop Layout */}
+        {/* Desktop Layout - Keep existing size */}
         <div className="hidden md:flex items-center space-x-4">
           {/* Song Info */}
           <div className="flex items-center space-x-3 w-80 flex-shrink-0">
