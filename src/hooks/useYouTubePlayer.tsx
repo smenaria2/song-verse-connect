@@ -367,8 +367,12 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
       if (isPlaying) {
         console.log('Pausing video');
         playerRef.current.pauseVideo();
+        pendingPlayRef.current = false; // Clear any pending play
       } else {
         console.log('Playing video on mobile:', isMobile);
+        
+        // CRITICAL FIX: Set pending play flag IMMEDIATELY when user wants to play
+        pendingPlayRef.current = true;
         
         // IMPROVED: Check player state before attempting to play
         const currentState = playerRef.current.getPlayerState();
@@ -383,8 +387,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
                   currentState === -1) {
                 console.log('Video not loaded, loading first...');
                 playerRef.current.loadVideoById(youtubeId);
-                // Set pending play to trigger after load
-                pendingPlayRef.current = true;
+                // pendingPlayRef is already set above
                 return;
               }
               
@@ -402,6 +405,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
                       playerRef.current?.playVideo();
                     } else {
                       setPlaybackError('Playback failed. Please try again or check your connection.');
+                      pendingPlayRef.current = false;
                     }
                   }
                 } catch (fallbackError) {
@@ -412,6 +416,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
             } catch (mobileError) {
               console.error('Mobile play error:', mobileError);
               setPlaybackError('Mobile playback failed. Try refreshing the page.');
+              pendingPlayRef.current = false;
             }
           };
 
@@ -426,8 +431,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
                 currentState === -1) {
               console.log('Video not loaded, loading first...');
               playerRef.current.loadVideoById(youtubeId);
-              // Set pending play to trigger after load
-              pendingPlayRef.current = true;
+              // pendingPlayRef is already set above
               return;
             }
             
@@ -437,6 +441,7 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
               playPromise.catch((error: any) => {
                 console.error('Desktop play promise failed:', error);
                 setPlaybackError('Playback blocked. Please ensure audio is allowed in your browser.');
+                pendingPlayRef.current = false;
               });
             }
             
@@ -455,12 +460,14 @@ export const useYouTubePlayer = ({ youtubeId, isPlaying, onPlayingChange }: UseY
           } catch (desktopError) {
             console.error('Desktop play error:', desktopError);
             setPlaybackError('Playback failed. Try refreshing the page.');
+            pendingPlayRef.current = false;
           }
         }
       }
     } catch (error) {
       console.error('Play/pause error:', error);
       setPlaybackError('Playback control failed');
+      pendingPlayRef.current = false;
     }
   }, [isPlaying, hasUserInteracted, isMobile, youtubeId]);
 
