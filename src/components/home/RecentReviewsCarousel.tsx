@@ -32,8 +32,8 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mobile: Show 1 item, Desktop: Show 3 items
-  const itemsPerView = isMobile ? 1 : 3;
+  // Mobile: Show 1 item, Desktop: Show 2 items (changed from 3)
+  const itemsPerView = isMobile ? 1 : 2;
   const maxIndex = Math.max(0, recentReviews.length - itemsPerView);
 
   useEffect(() => {
@@ -137,7 +137,7 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                 key={review.id} 
                 className={`flex-shrink-0 ${isMobile ? 'w-full' : 'px-2'}`}
                 style={{ 
-                  width: isMobile ? '100%' : `${100 / recentReviews.length}%` 
+                  width: `${100 / itemsPerView}%`
                 }}
               >
                 {/* Enhanced mobile-friendly review card */}
