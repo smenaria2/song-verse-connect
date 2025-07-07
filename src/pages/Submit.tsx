@@ -111,7 +111,8 @@ const Submit = () => {
         artist: songData.artist,
         genre: dbGenre as SongGenre,
         thumbnail_url: songData.thumbnail,
-        duration: songData.duration
+        duration: songData.duration,
+        personal_note: personalNote.trim() || undefined
       });
 
       // Reset form
@@ -281,7 +282,7 @@ const Submit = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="personal-note" className="text-white">
-                        Personal Note (Optional)
+                        Personal Note <span className="text-white/60">(Optional)</span>
                       </Label>
                       <Textarea
                         id="personal-note"
@@ -289,7 +290,11 @@ const Submit = () => {
                         value={personalNote}
                         onChange={(e) => setPersonalNote(e.target.value)}
                         className="bg-white/10 border-white/20 text-white placeholder-white/60 min-h-[100px]"
+                        maxLength={1000}
                       />
+                      <p className="text-white/50 text-xs">
+                        {personalNote.length}/1000 characters
+                      </p>
                     </div>
                   </div>
 
@@ -326,12 +331,13 @@ const Submit = () => {
                         <li>Check if the song has already been submitted</li>
                         <li>Ensure the content follows community guidelines</li>
                         <li>Add accurate genre information to help others discover</li>
+                        <li>Share your personal connection to the song in the note</li>
                         <li>Indian music of all genres is especially welcome!</li>
                       </ul>
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              )}
 
               {/* API Key Notice */}
               {(!import.meta.env.VITE_YOUTUBE_API_KEY || import.meta.env.VITE_YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') && (

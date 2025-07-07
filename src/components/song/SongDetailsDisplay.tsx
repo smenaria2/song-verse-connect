@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Clock, Play, Trash2, Pause } from "lucide-react";
+import { Star, Clock, Play, Trash2, Pause, MessageSquare, User } from "lucide-react";
 import { Song } from "@/types/app";
 import { formatGenre } from "@/utils/formatters/genre";
 import { formatDate } from "@/utils/formatters/date";
@@ -207,14 +207,30 @@ const SongDetailsDisplay = ({ song }: SongDetailsDisplayProps) => {
                 </Button>
               </div>
 
+              {/* Personal Note Section */}
+              {song.personal_note && (
+                <div className="mb-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center mb-2">
+                    <MessageSquare className="h-4 w-4 text-purple-400 mr-2" />
+                    <h3 className="text-white font-medium text-sm">Personal Note from Submitter</h3>
+                  </div>
+                  <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
+                    {song.personal_note}
+                  </p>
+                </div>
+              )}
+
               <div className="text-sm md:text-base space-y-1">
-                <p className="text-white/60">
-                  Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
-                  {isAdmin && song.submitter_id === user?.id && (
-                    <span className="ml-2 text-purple-400 text-xs">(You)</span>
-                  )}
-                </p>
-                <p className="text-white/60 text-xs md:text-sm">
+                <div className="flex items-center text-white/60">
+                  <User className="h-4 w-4 mr-2" />
+                  <span>
+                    Submitted by <span className="text-orange-400">{song.submitter_username || 'Unknown'}</span>
+                    {isAdmin && song.submitter_id === user?.id && (
+                      <span className="ml-2 text-purple-400 text-xs">(You)</span>
+                    )}
+                  </span>
+                </div>
+                <p className="text-white/60 text-xs md:text-sm ml-6">
                   {formatDate(song.created_at)}
                 </p>
               </div>

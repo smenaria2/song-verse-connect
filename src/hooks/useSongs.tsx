@@ -101,6 +101,7 @@ export const useSubmitSong = () => {
       genre: SongGenre;
       thumbnail_url?: string;
       duration?: string;
+      personal_note?: string;
     }) => {
       // Validate and sanitize input
       const validatedData = validateSongSubmission({
@@ -129,7 +130,8 @@ export const useSubmitSong = () => {
         title: validatedData.title,
         artist: validatedData.artist,
         youtube_id: extractedId,
-        submitter_id: userData.user.id
+        submitter_id: userData.user.id,
+        personal_note: songData.personal_note?.trim() || null
       };
 
       const { data, error } = await supabase

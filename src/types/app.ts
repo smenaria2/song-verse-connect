@@ -16,6 +16,7 @@ export interface Song {
   submitter_avatar?: string;
   average_rating: number;
   review_count: number;
+  personal_note?: string;
 }
 
 export interface SongsStats {
