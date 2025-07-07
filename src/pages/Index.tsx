@@ -11,6 +11,7 @@ import HeroSection from "@/components/home/HeroSection";
 import SearchAndFilter from "@/components/home/SearchAndFilter";
 import StatsSection from "@/components/home/StatsSection";
 import RecentReviewsCarousel from "@/components/home/RecentReviewsCarousel";
+import TopContributors from "@/components/home/TopContributors";
 import SongsGrid from "@/components/home/SongsGrid";
 
 const Index = () => {
@@ -75,6 +76,9 @@ const Index = () => {
         {recentReviews.length > 0 && (
           <RecentReviewsCarousel recentReviews={recentReviews} />
         )}
+
+        {/* Show top contributors for authenticated users */}
+        {user && <TopContributors />}
 
         <SongsGrid 
           data={data}

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, MessageCircle, Loader2, ThumbsUp, Pencil, Trash2, Save, X, Share } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useReviews, useSubmitReview, useDeleteReview } from "@/hooks/useReviews";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useUserRole";
@@ -117,17 +118,24 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-start space-x-3 max-w-full">
-                  <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
-                    <AvatarImage src={review.reviewer_avatar} />
-                    <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(review.reviewer_id)}`}>
-                      {getUserInitials(review.reviewer_username)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Link to={`/profile/${review.reviewer_id}`} className="flex-shrink-0">
+                    <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 hover:ring-2 hover:ring-purple-400/50 transition-all duration-200">
+                      <AvatarImage src={review.reviewer_avatar} />
+                      <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(review.reviewer_id)}`}>
+                        {getUserInitials(review.reviewer_username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
                   
                   <div className="flex-1 space-y-3 min-w-0 max-w-full overflow-hidden">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-white font-medium text-sm md:text-base truncate">{review.reviewer_username}</h4>
+                        <Link 
+                          to={`/profile/${review.reviewer_id}`}
+                          className="hover:text-purple-400 transition-colors"
+                        >
+                          <h4 className="text-white font-medium text-sm md:text-base truncate hover:underline">{review.reviewer_username}</h4>
+                        </Link>
                         <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-2">
                           <div className="flex items-center space-x-1">
                             {[...Array(5)].map((_, i) => (
@@ -201,12 +209,14 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
             {userReview && (
               <div className="border-t border-purple-500/30 pt-6 max-w-full overflow-hidden" id={`review-${userReview.id}`}>
                 <div className="flex items-start space-x-3 max-w-full">
-                  <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
-                    <AvatarImage src={userReview.reviewer_avatar} />
-                    <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(userReview.reviewer_id)}`}>
-                      {getUserInitials(userReview.reviewer_username)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <Link to={`/profile/${userReview.reviewer_id}`} className="flex-shrink-0">
+                    <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 hover:ring-2 hover:ring-purple-400/50 transition-all duration-200">
+                      <AvatarImage src={userReview.reviewer_avatar} />
+                      <AvatarFallback className={`text-white text-xs md:text-sm ${getRandomAvatarColor(userReview.reviewer_id)}`}>
+                        {getUserInitials(userReview.reviewer_username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Link>
                   
                   <div className="flex-1 space-y-3 min-w-0 max-w-full overflow-hidden">
                     {editingReview === userReview.id ? (
@@ -270,7 +280,12 @@ const ReviewListSection = ({ songId }: ReviewListSectionProps) => {
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="text-purple-300 font-medium text-sm md:text-base truncate">{userReview.reviewer_username}</h4>
+                              <Link 
+                                to={`/profile/${userReview.reviewer_id}`}
+                                className="hover:text-purple-400 transition-colors"
+                              >
+                                <h4 className="text-purple-300 font-medium text-sm md:text-base truncate hover:underline">{userReview.reviewer_username}</h4>
+                              </Link>
                               <span className="text-purple-400 text-xs bg-purple-600/20 px-2 py-1 rounded flex-shrink-0">Your Review</span>
                             </div>
                             <div className="flex flex-col md:flex-row md:items-center space-y-1 md:space-y-0 md:space-x-2">

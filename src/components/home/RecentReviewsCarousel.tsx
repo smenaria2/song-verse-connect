@@ -147,20 +147,27 @@ const RecentReviewsCarousel = ({ recentReviews }: RecentReviewsCarouselProps) =>
                   {/* Header with user info and share button */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
-                      <Avatar className={`ring-2 ring-white/20 flex-shrink-0 ${
-                        isMobile ? 'h-14 w-14' : 'h-10 w-10'
-                      }`}>
-                        <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
-                        <AvatarFallback className={`text-white font-semibold ${getRandomAvatarColor(review.reviewer_id)} ${
-                          isMobile ? 'text-base' : 'text-sm'
+                      <Link to={`/profile/${review.reviewer_id}`} className="flex-shrink-0">
+                        <Avatar className={`ring-2 ring-white/20 flex-shrink-0 hover:ring-purple-400/50 transition-all duration-200 ${
+                          isMobile ? 'h-14 w-14' : 'h-10 w-10'
                         }`}>
-                          {getUserInitials(review.reviewer_username)}
-                        </AvatarFallback>
-                      </Avatar>
+                          <AvatarImage src={review.reviewer_avatar || ""} alt={review.reviewer_username} />
+                          <AvatarFallback className={`text-white font-semibold ${getRandomAvatarColor(review.reviewer_id)} ${
+                            isMobile ? 'text-base' : 'text-sm'
+                          }`}>
+                            {getUserInitials(review.reviewer_username)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
                       <div className="flex-1 min-w-0">
-                        <h3 className={`font-semibold text-white truncate ${
-                          isMobile ? 'text-lg' : 'text-base'
-                        }`}>{review.reviewer_username}</h3>
+                        <Link 
+                          to={`/profile/${review.reviewer_id}`}
+                          className="hover:text-purple-400 transition-colors"
+                        >
+                          <h3 className={`font-semibold text-white truncate hover:underline ${
+                            isMobile ? 'text-lg' : 'text-base'
+                          }`}>{review.reviewer_username}</h3>
+                        </Link>
                         <p className={`text-white/80 ${
                           isMobile ? 'text-base' : 'text-sm'
                         }`}>
